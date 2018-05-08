@@ -17,10 +17,11 @@ func CheckError(err error) {
 		fmt.Println("Error: ", err)
 	}
 }
-func NewWallet() (w * Wallet) {
+func NewWallet() (* Wallet) {
+	w := new(Wallet)
 	skey, err := rsa.GenerateKey(rand.Reader, 1000)
 	CheckError(err)
 	w.Keys = new(rsa.PrivateKey)
-	w.Keys = *skey
-	return
+	w.Keys = skey
+	return w
 }
