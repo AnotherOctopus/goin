@@ -27,14 +27,30 @@ func New()(nd Node){
 	nd.wallets[0] = NewWallet()
 	return
 }
+
 func (wal *Wallet) ClaimTx(tx cnet.Transaction) (reterr error) {
 
 	return nil
 }
 
-func (nd *Node) handleTX(tx cnet.Transaction) {
-
+func verifyTx(tx cnet.Transaction)(err error) {
+	// Check if the the Transaction is valid
+	return nil
 }
+
+func saveTx(tx cnet.Transaction)(err error){
+
+	return nil
+}
+
+func (nd *Node) handleTX(tx cnet.Transaction) {
+	if verifyTx(tx) == nil {
+		saveTx(tx)
+	}else {
+		fmt.Println("Invalid transaction Recieved")
+	}
+}
+
 func (nd *Node) TxListener() {
 	// Listen for incoming connections.
 	l, err := net.Listen(CONN_TYPE, NETWORK_INT+":"+TRANSRXPORT)
