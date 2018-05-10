@@ -1,0 +1,11 @@
+{
+"Inputs": [{
+  "PrevTransHash": "hex",
+  "OutIdx": 0
+  }],
+"Outputs": [{
+  "Addr": "hex",
+  "Amount": 5,
+  "Signature": "hex"
+  }]
+}

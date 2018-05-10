@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"os"
 )
 
 const (
@@ -47,5 +48,13 @@ func (tx Transaction) Dump() (ret []byte) {
 func LoadTX(b []byte) (tx Transaction) {
 	err := json.Unmarshal(b, tx)
 	checkerror(err)
+	return
+}
+
+func LoadFTX(fh * os.File )(tx Transaction){
+	raw := make([]byte,MAXTRANSNETSIZE)
+	_,err := fh.Read(raw)
+	checkerror(err)
+	json.Unmarshal(raw,tx)
 	return
 }

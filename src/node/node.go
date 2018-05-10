@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"reflect"
 )
 
 const (
@@ -17,19 +18,29 @@ const (
 
 
 type Node struct {
-	peers   []*net.TCPAddr
-	wallets []*Wallet
+	peers   []string
+	wallet *Wallet
 }
 
-func New()(nd Node){
-	nd.peers =	nil
-	nd.wallets = make([]*Wallet,10)
-	nd.wallets[0] = NewWallet()
+func New(peerips []string)(nd Node){
+
+	nd.peers =	make([]string,len(peerips))
+	for i, p := range peerips {
+		nd.peers[i] = p + ":" + TRANSBROADPORT
+	}
+	nd.wallet = new(Wallet)
 	return
 }
 
-func (wal *Wallet) ClaimTx(tx cnet.Transaction) (reterr error) {
-
+func (nd Node) SendTx (tx cnet.Transaction)(reterr error){
+	for _,peer := range nd.peers{
+		conn, err := net.Dial("tcp", peer)
+		if err != nil {
+			return err
+		}
+		conn.Write(tx.Dump())
+		conn.Close()
+	}
 	return nil
 }
 
@@ -45,7 +56,18 @@ func saveTx(tx cnet.Transaction)(err error){
 
 func (nd *Node) handleTX(tx cnet.Transaction) {
 	if verifyTx(tx) == nil {
+		canclaim := false
 		saveTx(tx)
+		for _, txOut := range tx.Outputs {
+			for _, addr := range nd.wallet.Address {
+				if reflect.DeepEqual(txOut.Addr, addr) {
+					canclaim = true
+				}
+			}
+		}
+		if canclaim {
+			nd.wallet.ClaimedTxs = append(nd.wallet.ClaimedTxs, tx)
+		}
 	}else {
 		fmt.Println("Invalid transaction Recieved")
 	}

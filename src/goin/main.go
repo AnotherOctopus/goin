@@ -7,14 +7,17 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"cnet"
 )
 func CheckError(err error) {
 	if err != nil {
 		fmt.Println("Error: ", err)
+		os.Exit(1)
 	}
 }
 func main(){
-	nd := node.New()
+	peerips := []string{"127.0.0.1"}
+	nd := node.New(peerips)
 	go nd.TxListener()
 	fmt.Println("Listening for Transactions...")
 	fmt.Println("Launching Goin CLI! ")
@@ -36,7 +39,15 @@ func main(){
 		}
 		switch i {
 		case 1:
-			fmt.Println("Send")
+			fmt.Println("Select Filename of Transaction to send")
+			filename, _ := reader.ReadString('\n')
+			filename = strings.TrimSpace(filename)
+			file, err := os.Open(filename)
+			node.CheckError(err)
+			txtosend := cnet.LoadFTX(file)
+			err = nd.SendTx(txtosend)
+			CheckError(err)
+			fmt.Println("Sent")
 		case 2:
 			fmt.Println("Prep")
 		case 3:
