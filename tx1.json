@@ -1,11 +1,11 @@
 {
 "Inputs": [{
-  "PrevTransHash": "hex",
+  "PrevTransHash": [],
   "OutIdx": 0
   }],
 "Outputs": [{
-  "Addr": "hex",
+  "Addr": [],
   "Amount": 5,
-  "Signature": "hex"
+  "Signature":[]
   }]
 }

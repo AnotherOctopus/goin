@@ -20,6 +20,7 @@ const (
 type Node struct {
 	peers   []string
 	wallet *Wallet
+	isminer bool
 }
 
 func New(peerips []string)(nd Node){
