@@ -5,17 +5,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"constants"
 )
 
-const (
-	MAXTRANSNETSIZE = 10000
-)
+
 type input struct {
-	PrevTransHash [32]byte //Input transaction that is being spent
+	PrevTransHash [constants.HASHSIZE]byte //Input transaction that is being spent
 	OutIdx        uint32 //Index of the particular transaction
 }
 type output struct {
-	Addr            [32]byte //Address to send the money to
+	Addr            [constants.ADDRESSSIZE]byte //Address to send the money to
 	Amount          uint32 //Amount sending
 	Signature       []byte //The hash of the output encrypted with the payers private key
 }
@@ -24,11 +23,11 @@ type Transaction struct {
 		TotalTransAmt uint32  //Total amount moving in transaction
 		TimePrepared  uint64  //Time of the transaction
 		Pubkey     []byte  //Payers public key
-		Address    [32]byte  //Payers address
+		Address    [constants.ADDRESSSIZE]byte  //Payers address
 	}
 	Inputs [] input `json:"Inputs"`
 	Outputs [] output `json:"Outputs"`
-	Hash [32]byte //Hash of the whole transaction
+	Hash [constants.HASHSIZE]byte //Hash of the whole transaction
 }
 
 func checkerror(err error) {
@@ -36,13 +35,14 @@ func checkerror(err error) {
 		fmt.Println("Error: ", err)
 	}
 }
-func (tx Transaction) Dump() (ret []byte) {
-	tx.Hash = [32]byte{}
+func (tx Transaction) Dump() (size int, ret []byte) {
+	tx.Hash = [constants.HASHSIZE]byte{}
 	ret, err := json.Marshal(tx)
 	checkerror(err)
 	tx.Hash = sha256.Sum256(ret)
 	ret, err = json.Marshal(tx)
 	checkerror(err)
+	size = len(ret)
 	return
 }
 
@@ -61,4 +61,28 @@ func LoadFTX(filename string)(rettx Transaction){
 	checkerror(err)
 	fmt.Println(pretx)
 	return
+}
+
+func Merkleify(txs [] Transaction)([]byte){
+	hashlist := make([][]byte,len(txs))
+	for i, tx := range txs {
+		hashlist[i] = tx.Hash[:]
+	}
+	for len(hashlist) > 1{
+		parseIdx := 0
+		hashIdx := 0
+		for parseIdx < len(hashlist){
+			if parseIdx + 1 != len(hashlist){
+				hashlist[hashIdx] = append(hashlist[parseIdx],hashlist[parseIdx+1]...)
+				hashIdx += 1
+				parseIdx += 2
+			}else {
+				h := sha256.New()
+				copy(hashlist[hashIdx],h.Sum(hashlist[parseIdx])[:])
+				hashIdx += 1
+				parseIdx += 1
+			}
+		}
+	}
+	return hashlist[0]
 }

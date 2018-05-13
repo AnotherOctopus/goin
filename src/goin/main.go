@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"cnet"
+	"io/ioutil"
+	"log"
 )
 func CheckError(err error) {
 	if err != nil {
@@ -28,7 +30,9 @@ func main(){
 		fmt.Println("[1] Send Transaction From File")
 		fmt.Println("[2] Manually Prepare Transaction")
 		fmt.Println("[3] View Current Balence")
-		fmt.Println("[4] Exit")
+		fmt.Println("[4] Make A New Wallet")
+		fmt.Println("[5] Load A Wallet")
+		fmt.Println("[10] Exit")
 		text, _ := reader.ReadString('\n')
 		text = strings.TrimSpace(text)
 		i,err := strconv.ParseInt(text,10,8)
@@ -51,9 +55,24 @@ func main(){
 		case 3:
 			fmt.Println("Balence")
 		case 4:
+			wallet := node.NewWallet(3)
+			fmt.Println("Select Filename of where to save wallet")
+			filename, _ := reader.ReadString('\n')
+			filename = strings.TrimSpace(filename)
+			ioutil.WriteFile(filename,wallet.Dump(),0644)
+		case 5:
+			fmt.Println("Select Filename of wallet")
+			filename, _ := reader.ReadString('\n')
+			filename = strings.TrimSpace(filename)
+			rawdata,err := ioutil.ReadFile(filename)
+			node.CheckError(err)
+			wallet := node.LoadWallet(rawdata)
+			log.Println(wallet)
+		case 10:
 			fmt.Println("Exiting")
 			done = true
 			break
+
 		default:
 			fmt.Println("Select a valid number")
 		}

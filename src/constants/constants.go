@@ -1,0 +1,13 @@
+package constants
+
+const (
+	MAXTRANSNETSIZE = 10000
+	TRANSBROADPORT = "1917"
+	TRANSRXPORT    = "1943"
+	BLOCKRXPORT    = "1918"
+	CONN_TYPE      = "tcp"
+	NETWORK_INT    = "0.0.0.0"
+	ADDRESSSIZE    = 8
+	PRIVKEYSIZE    = 2000
+	HASHSIZE       = 32
+)

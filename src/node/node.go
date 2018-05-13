@@ -6,16 +6,8 @@ import (
 	"net"
 	"os"
 	"reflect"
+	"constants"
 )
-
-const (
-	TRANSBROADPORT = "1917"
-	TRANSRXPORT    = "1943"
-	BLOCKRXPORT    = "1918"
-	CONN_TYPE      = "tcp"
-	NETWORK_INT    = "0.0.0.0"
-)
-
 
 type Node struct {
 	peers   []string
@@ -27,7 +19,7 @@ func New(peerips []string)(nd Node){
 
 	nd.peers =	make([]string,len(peerips))
 	for i, p := range peerips {
-		nd.peers[i] = p + ":" + TRANSBROADPORT
+		nd.peers[i] = p + ":" + constants.TRANSBROADPORT
 	}
 	nd.wallet = new(Wallet)
 	return
@@ -39,7 +31,8 @@ func (nd Node) SendTx (tx cnet.Transaction)(reterr error){
 		if err != nil {
 			return err
 		}
-		conn.Write(tx.Dump())
+		_, txData := tx.Dump()
+		conn.Write(txData)
 		conn.Close()
 	}
 	return nil
@@ -67,7 +60,7 @@ func (nd *Node) handleTX(tx cnet.Transaction) {
 			}
 		}
 		if canclaim {
-			nd.wallet.ClaimedTxs = append(nd.wallet.ClaimedTxs, tx)
+			nd.wallet.ClaimedTxs = append(nd.wallet.ClaimedTxs, tx.Hash)
 		}
 	}else {
 		fmt.Println("Invalid transaction Recieved")
@@ -76,15 +69,15 @@ func (nd *Node) handleTX(tx cnet.Transaction) {
 
 func (nd *Node) TxListener() {
 	// Listen for incoming connections.
-	l, err := net.Listen(CONN_TYPE, NETWORK_INT+":"+TRANSRXPORT)
+	l, err := net.Listen(constants.CONN_TYPE, constants.NETWORK_INT+":"+constants.TRANSRXPORT)
 	if err != nil {
 		fmt.Println("Error listening:", err.Error())
 		os.Exit(1)
 	}
 	// Close the listener when the application closes.
 	defer l.Close()
-	fmt.Println("Listening on " + NETWORK_INT + ":" + TRANSRXPORT)
-	txbuffer := make([]byte,cnet.MAXTRANSNETSIZE)
+	fmt.Println("Listening on " + constants.NETWORK_INT + ":" + constants.TRANSRXPORT)
+	txbuffer := make([]byte,constants.MAXTRANSNETSIZE)
 	for {
 		// Listen for an incoming connection.
 		conn, err := l.Accept()
