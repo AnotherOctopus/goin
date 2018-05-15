@@ -6,8 +6,11 @@ import (
 	"fmt"
 	"constants"
 	"crypto/x509"
-	"log"
 	"bytes"
+	"crypto/sha256"
+	"encoding/binary"
+	"strconv"
+	"encoding/hex"
 )
 
 type Wallet struct {
@@ -58,11 +61,9 @@ func (w Wallet) Dump()([]byte){
 func LoadWallet(b []byte)(*Wallet){
 	w := NewWallet(0)
 	idx := 0
-	log.Println(bytes.Trim(b[idx:idx+constants.PRIVKEYSIZE],string(0x00)))
 	key,err := x509.ParsePKCS1PrivateKey(bytes.Trim(b[idx:idx+constants.PRIVKEYSIZE],string(0x00)))
 	CheckError(err)
 	for err == nil {
-		log.Println("Loaded Key",key)
 		w.Keys = append(w.Keys, key)
 		idx += constants.PRIVKEYSIZE
 		if idx+constants.PRIVKEYSIZE >= len(b){
@@ -70,7 +71,6 @@ func LoadWallet(b []byte)(*Wallet){
 		}
 		key,err = x509.ParsePKCS1PrivateKey(bytes.Trim(b[idx:idx+constants.PRIVKEYSIZE],string(0x00)))
 	}
-	log.Println(len(w.Keys))
 	var addressbuffer [constants.ADDRESSSIZE]byte
 	for addrIdx := 0 ; addrIdx < len(w.Keys) ; addrIdx += 1{
 		copy(addressbuffer[:], b[idx:idx+constants.ADDRESSSIZE])
@@ -82,11 +82,31 @@ func LoadWallet(b []byte)(*Wallet){
 		copy(txbuffer[:], b[idx:idx+constants.HASHSIZE])
 		w.ClaimedTxs = append(w.ClaimedTxs,txbuffer)
 		idx += constants.HASHSIZE
-		log.Println("txloaded")
 	}
 	return w
 }
 func pkeytoaddress( pkey rsa.PublicKey)([constants.ADDRESSSIZE]byte){
+	EBytes := make([]byte, 8)
+	NBytes := pkey.N.Bytes()
+	var ret [constants.ADDRESSSIZE]byte
+	h := sha256.New()
+	binary.LittleEndian.PutUint64(EBytes,uint64(pkey.E))
+	subhash := h.Sum(NBytes)
+	for i := 0 ; i < constants.ADDRESSSIZE; i += 1 {
+		subhash = append(subhash, EBytes[i])
+	}
+	copy(ret[:],h.Sum(subhash))
 
-	return [8]byte{0x00}
+	return ret
+}
+
+func (w Wallet) String()(string){
+	retstring := ""
+	retstring += "Number of Addresses: "
+	retstring += strconv.Itoa(len(w.Keys)) + "\n"
+	for _,addr := range w.Address {
+		retstring += hex.EncodeToString(addr[:]) + "\n"
+	}
+	return retstring
+
 }

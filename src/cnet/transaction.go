@@ -1,28 +1,32 @@
 package cnet
 
 import (
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"constants"
+	"crypto/rsa"
+	"encoding/binary"
+	"crypto"
 )
-
 
 type input struct {
 	PrevTransHash [constants.HASHSIZE]byte //Input transaction that is being spent
 	OutIdx        uint32 //Index of the particular transaction
 }
+
 type output struct {
 	Addr            [constants.ADDRESSSIZE]byte //Address to send the money to
 	Amount          uint32 //Amount sending
 	Signature       []byte //The hash of the output encrypted with the payers private key
 }
+
 type Transaction struct {
 	Meta struct {
-		TotalTransAmt uint32  //Total amount moving in transaction
-		TimePrepared  uint64  //Time of the transaction
-		Pubkey     []byte  //Payers public key
+		TimePrepared  int64  //Time of the transaction
+		Pubkey     rsa.PublicKey  //Payers public key
 		Address    [constants.ADDRESSSIZE]byte  //Payers address
 	}
 	Inputs [] input `json:"Inputs"`
@@ -85,4 +89,13 @@ func Merkleify(txs [] Transaction)([]byte){
 		}
 	}
 	return hashlist[0]
+}
+func (o output)HashFunc() (crypto.Hash){
+	return 0
+}
+func (o output) GenSignature(key * rsa.PrivateKey)([]byte){
+	amountBytes := make([]byte,4)
+	binary.LittleEndian.PutUint32(amountBytes,o.Amount)
+	toSign := append(amountBytes,o.Addr[:]...)
+	key.Sign( rand.Reader,toSign,o)
 }

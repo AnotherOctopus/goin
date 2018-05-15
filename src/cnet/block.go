@@ -4,6 +4,8 @@ import (
 	"encoding/binary"
 	"crypto/sha256"
 	"time"
+	"node"
+	"constants"
 )
 
 type Block struct{
@@ -50,12 +52,22 @@ func (bl Block) HeaderSize()(int){
 	size += 4 // noncetry
 	return size
 }
-func CreateGenesisBlock()(bl Block){
+func CreateGenesisBlock(creator * node.Wallet)(bl Block){
 	bl.header.prevBlockHash = [32]byte{0}
 	bl.header.tStamp = uint64(time.Now().Unix())
 	bl.header.target = 250
 	bl.header.noncetry = 0
 	tx := new(Transaction)
+	tx.Meta.TimePrepared = time.Now().Unix()
+	tx.Meta.Pubkey = creator.Keys[0].PublicKey
+	tx.Meta.Address = creator.Address[0]
+	tx.Inputs = make([]input,1)
+	tx.Outputs = make([]output,1)
+	tx.Inputs[0].OutIdx = 0
+	tx.Inputs[0].PrevTransHash = [constants.HASHSIZE]byte{0}
+	tx.Outputs[0].Amount = 100
+	tx.Outputs[0].Addr = creator.Address[0]
+	tx.Outputs[0]
 	//DEFINE TRANSACTION HERE
 	bl.txs[0] = *tx
 	totalTxSize := 0
