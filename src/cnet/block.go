@@ -4,8 +4,10 @@ import (
 	"encoding/binary"
 	"crypto/sha256"
 	"time"
-	"node"
+	"wallet"
 	"constants"
+	"strconv"
+	"encoding/hex"
 )
 
 type Block struct{
@@ -52,7 +54,20 @@ func (bl Block) HeaderSize()(int){
 	size += 4 // noncetry
 	return size
 }
-func CreateGenesisBlock(creator * node.Wallet)(bl Block){
+func (bl Block) String()(string){
+	retstring := ""
+	retstring += "Block Made At: " + strconv.Itoa(int(bl.header.tStamp)) + "\n"
+	retstring += "Previous Block: "  + hex.EncodeToString(bl.header.prevBlockHash[:]) + "\n"
+	retstring += "Ease: " + strconv.Itoa(int(bl.header.target)) + "\n"
+	retstring += "Transactions: \n"
+	for _,tx := range bl.txs {
+		retstring += "TX 1: \n"
+		retstring += tx.String()
+	}
+	retstring += "\n"
+	return retstring
+}
+func CreateGenesisBlock(creator * wallet.Wallet)(bl Block){
 	bl.header.prevBlockHash = [32]byte{0}
 	bl.header.tStamp = uint64(time.Now().Unix())
 	bl.header.target = 250
@@ -67,7 +82,7 @@ func CreateGenesisBlock(creator * node.Wallet)(bl Block){
 	tx.Inputs[0].PrevTransHash = [constants.HASHSIZE]byte{0}
 	tx.Outputs[0].Amount = 100
 	tx.Outputs[0].Addr = creator.Address[0]
-	tx.Outputs[0]
+	tx.Outputs[0].Signature = tx.Outputs[0].GenSignature(creator.Keys[0])
 	//DEFINE TRANSACTION HERE
 	bl.txs[0] = *tx
 	totalTxSize := 0

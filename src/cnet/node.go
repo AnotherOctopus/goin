@@ -1,7 +1,7 @@
-package node
+package cnet
 
 import (
-	"cnet"
+	"wallet"
 	"fmt"
 	"net"
 	"os"
@@ -11,7 +11,7 @@ import (
 
 type Node struct {
 	peers   []string
-	wallet *Wallet
+	wallet *wallet.Wallet
 	isMiner bool
 }
 
@@ -21,11 +21,11 @@ func New(peerips []string)(nd Node){
 	for i, p := range peerips {
 		nd.peers[i] = p + ":" + constants.TRANSBROADPORT
 	}
-	nd.wallet = new(Wallet)
+	nd.wallet = new(wallet.Wallet)
 	return
 }
 
-func (nd Node) SendTx (tx cnet.Transaction)(reterr error){
+func (nd Node) SendTx (tx Transaction)(reterr error){
 	for _,peer := range nd.peers{
 		conn, err := net.Dial("tcp", peer)
 		if err != nil {
@@ -38,17 +38,17 @@ func (nd Node) SendTx (tx cnet.Transaction)(reterr error){
 	return nil
 }
 
-func verifyTx(tx cnet.Transaction)(err error) {
+func verifyTx(tx Transaction)(err error) {
 	// Check if the the Transaction is valid
 	return nil
 }
 
-func saveTx(tx cnet.Transaction)(err error){
+func saveTx(tx Transaction)(err error){
 
 	return nil
 }
 
-func (nd *Node) handleTX(tx cnet.Transaction) {
+func (nd *Node) handleTX(tx Transaction) {
 	if verifyTx(tx) == nil {
 		canclaim := false
 		saveTx(tx)
@@ -86,7 +86,7 @@ func (nd *Node) TxListener() {
 			os.Exit(1)
 		}
 		conn.Read(txbuffer)
-		tx:= cnet.LoadTX(txbuffer)
+		tx:= LoadTX(txbuffer)
 		// Handle connections in a new goroutine.
 		go nd.handleTX(tx)
 	}

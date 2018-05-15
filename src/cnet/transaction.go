@@ -10,6 +10,8 @@ import (
 	"crypto/rsa"
 	"encoding/binary"
 	"crypto"
+	"strconv"
+	"encoding/hex"
 )
 
 type input struct {
@@ -38,6 +40,22 @@ func checkerror(err error) {
 	if err != nil {
 		fmt.Println("Error: ", err)
 	}
+}
+func (tx Transaction) String() (string) {
+	retstring := ""
+	retstring += "Hash: " + hex.EncodeToString(tx.Hash[:])
+	retstring += "Payer: " + hex.EncodeToString(tx.Meta.Address[:]) + "\n"
+	retstring += "Transaction Prepared: " + strconv.Itoa(int(tx.Meta.TimePrepared)) + "\n"
+	for idx, inp := range tx.Inputs{
+		retstring += "Input " + strconv.Itoa(idx) + ": "
+		retstring += hex.EncodeToString(inp.PrevTransHash[:]) + ", idx " + strconv.Itoa(int(inp.OutIdx)) + "\n"
+	}
+
+	for idx, oup := range tx.Outputs{
+		retstring += "Output " + strconv.Itoa(idx) + ": "
+		retstring += strconv.Itoa(int(oup.Amount)) + " To " + hex.EncodeToString(oup.Addr[:]) + "\n"
+	}
+	return retstring
 }
 func (tx Transaction) Dump() (size int, ret []byte) {
 	tx.Hash = [constants.HASHSIZE]byte{}
@@ -98,4 +116,5 @@ func (o output) GenSignature(key * rsa.PrivateKey)([]byte){
 	binary.LittleEndian.PutUint32(amountBytes,o.Amount)
 	toSign := append(amountBytes,o.Addr[:]...)
 	key.Sign( rand.Reader,toSign,o)
+	return toSign
 }

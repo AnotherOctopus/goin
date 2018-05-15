@@ -1,7 +1,7 @@
 package main
 
 import (
-	"node"
+	"wallet"
 	"fmt"
 	"bufio"
 	"os"
@@ -19,7 +19,7 @@ func CheckError(err error) {
 }
 func main(){
 	peerips := []string{"127.0.0.1"}
-	nd := node.New(peerips)
+	nd := wallet.New(peerips)
 	go nd.TxListener()
 	fmt.Println("Listening for Transactions...")
 	fmt.Println("Launching Goin CLI! ")
@@ -55,7 +55,7 @@ func main(){
 		case 3:
 			fmt.Println("Balence")
 		case 4:
-			wallet := node.NewWallet(3)
+			wallet := wallet.NewWallet(3)
 			fmt.Println("Select Filename of where to save wallet")
 			filename, _ := reader.ReadString('\n')
 			filename = strings.TrimSpace(filename)
@@ -65,9 +65,10 @@ func main(){
 			filename, _ := reader.ReadString('\n')
 			filename = strings.TrimSpace(filename)
 			rawdata,err := ioutil.ReadFile(filename)
-			node.CheckError(err)
-			wallet := node.LoadWallet(rawdata)
+			wallet.CheckError(err)
+			wallet := wallet.LoadWallet(rawdata)
 			log.Println(wallet)
+			log.Println(cnet.CreateGenesisBlock(wallet))
 		case 10:
 			fmt.Println("Exiting")
 			done = true
