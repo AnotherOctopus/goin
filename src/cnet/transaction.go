@@ -84,10 +84,8 @@ func LoadFTX(filename string)(rettx Transaction){
 	var pretx Transaction
 	raw,err := ioutil.ReadFile(filename)
 	checkerror(err)
-	fmt.Println(raw)
 	err = json.Unmarshal(raw,&pretx)
 	checkerror(err)
-	fmt.Println(pretx)
 	return
 }
 

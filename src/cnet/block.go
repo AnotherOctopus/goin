@@ -3,11 +3,13 @@ package cnet
 import (
 	"encoding/binary"
 	"crypto/sha256"
-	"time"
 	"wallet"
 	"strconv"
 	"encoding/hex"
 	"constants"
+	"math/big"
+	"log"
+	"math"
 )
 
 type Block struct{
@@ -70,12 +72,12 @@ func (bl Block) String()(string){
 
 func CreateGenesisBlock(creator * wallet.Wallet)(bl Block){
 	bl.header.prevBlockHash = [constants.HASHSIZE]byte{0}
-	bl.header.tStamp = uint64(time.Now().Unix())
-	bl.header.target = 250
+	bl.header.tStamp = uint64(100)//time.Now().Unix())
+	bl.header.target = 243
 	bl.header.noncetry = 0
 
 	var tx Transaction
-	tx.Meta.TimePrepared = time.Now().Unix()
+	tx.Meta.TimePrepared = int64(100)//time.Now().Unix()
 	tx.Meta.Pubkey = creator.Keys[0].PublicKey
 	tx.Meta.Address = creator.Address[0]
 	tx.Inputs = make([]input,1)
@@ -104,4 +106,21 @@ func CreateGenesisBlock(creator * wallet.Wallet)(bl Block){
 func (bl Block) CheckNonce(nonce uint32) (bool){
 	bl.header.noncetry = nonce
 	hash := bl.Hash()
+	hashval := big.NewInt(0).SetBytes(hash[:])
+	maxHash := big.NewInt(1)
+	maxHash = maxHash.Lsh(maxHash,uint(bl.header.target))
+	if hashval.Cmp(maxHash) < 0 {
+		return true
+	}else {
+		return false
+	}
+}
+func mine(w * wallet.Wallet){
+	for i := 0; i  < math.MaxInt64; i += 1{
+		log.Println("Trying ",i)
+		if CreateGenesisBlock(w).CheckNonce(uint32(i)){
+			log.Println(i," Success!")
+			break
+		}
+	}
 }
