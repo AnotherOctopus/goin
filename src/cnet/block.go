@@ -5,15 +5,15 @@ import (
 	"crypto/sha256"
 	"time"
 	"wallet"
-	"constants"
 	"strconv"
 	"encoding/hex"
+	"constants"
 )
 
 type Block struct{
 	blocksize uint64
 	header struct{
-		prevBlockHash [32]byte
+		prevBlockHash [constants.HASHSIZE]byte
 		transHash []byte
 		tStamp uint64
 		target uint32
@@ -39,7 +39,7 @@ func (bl Block) Dump() (int, []byte){
 	return indx, bBlock
 }
 
-func (bl Block) Hash() ([32] byte){
+func (bl Block) Hash() ([constants.HASHSIZE] byte){
 	_, blBytes := bl.Dump()
 	blHash := sha256.Sum256(blBytes)
 	return blHash
@@ -67,24 +67,28 @@ func (bl Block) String()(string){
 	retstring += "\n"
 	return retstring
 }
+
 func CreateGenesisBlock(creator * wallet.Wallet)(bl Block){
-	bl.header.prevBlockHash = [32]byte{0}
+	bl.header.prevBlockHash = [constants.HASHSIZE]byte{0}
 	bl.header.tStamp = uint64(time.Now().Unix())
 	bl.header.target = 250
 	bl.header.noncetry = 0
-	tx := new(Transaction)
+
+	var tx Transaction
 	tx.Meta.TimePrepared = time.Now().Unix()
 	tx.Meta.Pubkey = creator.Keys[0].PublicKey
 	tx.Meta.Address = creator.Address[0]
 	tx.Inputs = make([]input,1)
 	tx.Outputs = make([]output,1)
 	tx.Inputs[0].OutIdx = 0
-	tx.Inputs[0].PrevTransHash = [constants.HASHSIZE]byte{0}
+	copy(tx.Inputs[0].PrevTransHash[:], []byte("Tutturu!"))
 	tx.Outputs[0].Amount = 100
 	tx.Outputs[0].Addr = creator.Address[0]
 	tx.Outputs[0].Signature = tx.Outputs[0].GenSignature(creator.Keys[0])
-	//DEFINE TRANSACTION HERE
-	bl.txs[0] = *tx
+	tx.SetHash()
+
+	bl.txs = make([]Transaction,1)
+	bl.txs[0] = tx
 	totalTxSize := 0
 	for _, tx := range bl.txs {
 		txSize, _ := tx.Dump()
@@ -96,4 +100,8 @@ func CreateGenesisBlock(creator * wallet.Wallet)(bl Block){
 	bl.blocksize = uint64(totalTxSize)
 	bl.transCnt = uint32(len(bl.txs))
 	return
+}
+func (bl Block) CheckNonce(nonce uint32) (bool){
+	bl.header.noncetry = nonce
+	hash := bl.Hash()
 }

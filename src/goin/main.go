@@ -19,7 +19,7 @@ func CheckError(err error) {
 }
 func main(){
 	peerips := []string{"127.0.0.1"}
-	nd := wallet.New(peerips)
+	nd := cnet.New(peerips)
 	go nd.TxListener()
 	fmt.Println("Listening for Transactions...")
 	fmt.Println("Launching Goin CLI! ")
@@ -55,20 +55,22 @@ func main(){
 		case 3:
 			fmt.Println("Balence")
 		case 4:
-			wallet := wallet.NewWallet(3)
+			w := wallet.NewWallet(3)
 			fmt.Println("Select Filename of where to save wallet")
 			filename, _ := reader.ReadString('\n')
 			filename = strings.TrimSpace(filename)
-			ioutil.WriteFile(filename,wallet.Dump(),0644)
+			ioutil.WriteFile(filename,w.Dump(),0644)
 		case 5:
 			fmt.Println("Select Filename of wallet")
 			filename, _ := reader.ReadString('\n')
 			filename = strings.TrimSpace(filename)
 			rawdata,err := ioutil.ReadFile(filename)
 			wallet.CheckError(err)
-			wallet := wallet.LoadWallet(rawdata)
-			log.Println(wallet)
-			log.Println(cnet.CreateGenesisBlock(wallet))
+			w := wallet.LoadWallet(rawdata)
+
+
+			log.Println(w)
+			log.Println(cnet.CreateGenesisBlock(w))
 		case 10:
 			fmt.Println("Exiting")
 			done = true

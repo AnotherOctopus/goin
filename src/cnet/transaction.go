@@ -43,26 +43,32 @@ func checkerror(err error) {
 }
 func (tx Transaction) String() (string) {
 	retstring := ""
-	retstring += "Hash: " + hex.EncodeToString(tx.Hash[:])
-	retstring += "Payer: " + hex.EncodeToString(tx.Meta.Address[:]) + "\n"
-	retstring += "Transaction Prepared: " + strconv.Itoa(int(tx.Meta.TimePrepared)) + "\n"
+	retstring += "	TX Hash: " + hex.EncodeToString(tx.Hash[:]) + "\n"
+	retstring += "	Payer: " + hex.EncodeToString(tx.Meta.Address[:]) + "\n"
+	retstring += "	Transaction Prepared at Time: " + strconv.Itoa(int(tx.Meta.TimePrepared)) + "\n"
 	for idx, inp := range tx.Inputs{
-		retstring += "Input " + strconv.Itoa(idx) + ": "
+		retstring += "	Input idx " + strconv.Itoa(idx) + ": "
 		retstring += hex.EncodeToString(inp.PrevTransHash[:]) + ", idx " + strconv.Itoa(int(inp.OutIdx)) + "\n"
 	}
 
 	for idx, oup := range tx.Outputs{
-		retstring += "Output " + strconv.Itoa(idx) + ": "
+		retstring += "	Output idx" + strconv.Itoa(idx) + ": "
 		retstring += strconv.Itoa(int(oup.Amount)) + " To " + hex.EncodeToString(oup.Addr[:]) + "\n"
 	}
 	return retstring
 }
-func (tx Transaction) Dump() (size int, ret []byte) {
+func (tx * Transaction) SetHash() (err error){
 	tx.Hash = [constants.HASHSIZE]byte{}
 	ret, err := json.Marshal(tx)
-	checkerror(err)
+	if err != nil{
+		return err
+	}
 	tx.Hash = sha256.Sum256(ret)
-	ret, err = json.Marshal(tx)
+	return nil
+}
+func (tx Transaction) Dump() (size int, ret []byte) {
+	tx.SetHash()
+	ret, err := json.Marshal(tx)
 	checkerror(err)
 	size = len(ret)
 	return
