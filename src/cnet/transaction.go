@@ -36,6 +36,10 @@ type Transaction struct {
 	Hash [constants.HASHSIZE]byte //Hash of the whole transaction
 }
 
+func (tx Transaction) Error() string {
+	return "TRANSACTION Not Valid:" + hex.EncodeToString(tx.Hash[:])
+}
+
 func checkerror(err error) {
 	if err != nil {
 		fmt.Println("Error: ", err)

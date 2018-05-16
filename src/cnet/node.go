@@ -7,6 +7,8 @@ import (
 	"os"
 	"reflect"
 	"constants"
+	"encoding/json"
+	"crypto/sha256"
 )
 
 type Node struct {
@@ -37,9 +39,32 @@ func (nd Node) SendTx (tx Transaction)(reterr error){
 	}
 	return nil
 }
+func getTxFromHash([constants.HASHSIZE] byte)(tx Transaction) {
 
+}
 func verifyTx(tx Transaction)(err error) {
 	// Check if the the Transaction is valid
+	// Check whole Hash
+	origHash := tx.Hash
+	tx.SetHash()
+	if tx.Hash != origHash {
+		return tx
+	}
+	totalOut := 0
+	totalIn := 0
+	for _, outp := range tx.Outputs {
+		//Check Signature of outputs
+	}
+
+
+	for _, inp := range tx.Inputs {
+		prevTx := getTxFromHash(inp.PrevTransHash)
+		totalIn += int(prevTx.Outputs[inp.OutIdx].Amount)
+		verifyTx(prevTx)
+	}
+	if totalIn != totalOut {
+		return tx
+	}
 	return nil
 }
 
