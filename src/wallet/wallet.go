@@ -31,7 +31,7 @@ func NewWallet(numkeys int) (* Wallet) {
 		skey, err := rsa.GenerateKey(rand.Reader, 2046)
 		CheckError(err)
 		w.Keys[i]	= skey
-		w.Address[i] = pkeytoaddress(skey.PublicKey)
+		w.Address[i] = Pkeytoaddress(skey.PublicKey)
 	}
 	return w
 }
@@ -85,7 +85,7 @@ func LoadWallet(b []byte)(*Wallet){
 	}
 	return w
 }
-func pkeytoaddress( pkey rsa.PublicKey)([constants.ADDRESSSIZE]byte){
+func Pkeytoaddress( pkey rsa.PublicKey)([constants.ADDRESSSIZE]byte){
 	EBytes := make([]byte, 8)
 	NBytes := pkey.N.Bytes()
 	var ret [constants.ADDRESSSIZE]byte

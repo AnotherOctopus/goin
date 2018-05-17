@@ -7,13 +7,11 @@ import (
 	"os"
 	"reflect"
 	"constants"
-	"encoding/json"
-	"crypto/sha256"
 )
 
 type Node struct {
 	peers   []string
-	wallet *wallet.Wallet
+	Wallet *wallet.Wallet
 	isMiner bool
 }
 
@@ -23,7 +21,7 @@ func New(peerips []string)(nd Node){
 	for i, p := range peerips {
 		nd.peers[i] = p + ":" + constants.TRANSBROADPORT
 	}
-	nd.wallet = new(wallet.Wallet)
+	nd.Wallet = nil
 	return
 }
 
@@ -39,53 +37,21 @@ func (nd Node) SendTx (tx Transaction)(reterr error){
 	}
 	return nil
 }
-func getTxFromHash([constants.HASHSIZE] byte)(tx Transaction) {
 
-}
-func verifyTx(tx Transaction)(err error) {
-	// Check if the the Transaction is valid
-	// Check whole Hash
-	origHash := tx.Hash
-	tx.SetHash()
-	if tx.Hash != origHash {
-		return tx
-	}
-	totalOut := 0
-	totalIn := 0
-	for _, outp := range tx.Outputs {
-		//Check Signature of outputs
-	}
-
-
-	for _, inp := range tx.Inputs {
-		prevTx := getTxFromHash(inp.PrevTransHash)
-		totalIn += int(prevTx.Outputs[inp.OutIdx].Amount)
-		verifyTx(prevTx)
-	}
-	if totalIn != totalOut {
-		return tx
-	}
-	return nil
-}
-
-func saveTx(tx Transaction)(err error){
-
-	return nil
-}
 
 func (nd *Node) handleTX(tx Transaction) {
 	if verifyTx(tx) == nil {
 		canclaim := false
 		saveTx(tx)
 		for _, txOut := range tx.Outputs {
-			for _, addr := range nd.wallet.Address {
+			for _, addr := range nd.Wallet.Address {
 				if reflect.DeepEqual(txOut.Addr, addr) {
 					canclaim = true
 				}
 			}
 		}
 		if canclaim {
-			nd.wallet.ClaimedTxs = append(nd.wallet.ClaimedTxs, tx.Hash)
+			nd.Wallet.ClaimedTxs = append(nd.Wallet.ClaimedTxs, tx.Hash)
 		}
 	}else {
 		fmt.Println("Invalid transaction Recieved")

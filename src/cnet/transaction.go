@@ -12,6 +12,7 @@ import (
 	"crypto"
 	"strconv"
 	"encoding/hex"
+	"wallet"
 )
 
 type input struct {
@@ -124,5 +125,68 @@ func (o output) GenSignature(key * rsa.PrivateKey)([]byte){
 	binary.LittleEndian.PutUint32(amountBytes,o.Amount)
 	toSign := append(amountBytes,o.Addr[:]...)
 	key.Sign( rand.Reader,toSign,o)
-	return toSign
+	sig,err := rsa.SignPKCS1v15(rand.Reader,key,o,toSign)
+	checkerror(err)
+	return sig
+}
+
+func (o output) VerifySignature(key * rsa.PublicKey)(error){
+	amountBytes := make([]byte,4)
+	binary.LittleEndian.PutUint32(amountBytes,o.Amount)
+	toVerify := append(amountBytes,o.Addr[:]...)
+	return rsa.VerifyPKCS1v15(key,o,toVerify,o.Signature)
+}
+
+func getTxFromHash([constants.HASHSIZE] byte)(tx Transaction) {
+	return  tx
+}
+func verifyTx(tx Transaction)(err error) {
+	// Check if the the Transaction is valid
+
+	// Check whole Hash
+	origHash := tx.Hash
+	tx.SetHash()
+	if tx.Hash != origHash {
+		return tx
+	}
+
+	// Check address
+	if wallet.Pkeytoaddress(tx.Meta.Pubkey) != tx.Meta.Address {
+		return tx
+	}
+
+	// Saving the total input and output
+	totalOut := 0
+	totalIn := 0
+
+	// Verify the signature of each output
+	for _, outp := range tx.Outputs {
+		//Check Signature of outputs
+		err = outp.VerifySignature(&tx.Meta.Pubkey)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Verify that the previous transactions that it referances are valid
+	for _, inp := range tx.Inputs {
+		prevTx := getTxFromHash(inp.PrevTransHash)
+		totalIn += int(prevTx.Outputs[inp.OutIdx].Amount)
+		err = verifyTx(prevTx)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Verify that the total out is the total in
+	if totalIn != totalOut {
+		return tx
+	}
+
+	return nil
+}
+
+func saveTx(tx Transaction)(err error){
+
+	return nil
 }

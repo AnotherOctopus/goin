@@ -21,8 +21,6 @@ func CheckError(err error) {
 }
 func main(){
 	peerips := []string{"127.0.0.1"}
-	var w * wallet.Wallet
-	w = nil
 	nd := cnet.New(peerips)
 	go nd.TxListener()
 	fmt.Println("Listening for Transactions...")
@@ -47,12 +45,12 @@ func main(){
 		}
 		switch i {
 		case 1:
-			if w == nil {
+			if nd.Wallet == nil {
 				fmt.Println("Select a Wallet First!")
 				break
 			}
 			fmt.Println("Select an Address to use")
-			for i,addr := range w.Address {
+			for i,addr := range nd.Wallet.Address {
 				fmt.Println(fmt.Sprintf("[%v]: %v",i,hex.EncodeToString(addr[:])))
 			}
 			text, _ := reader.ReadString('\n')
@@ -63,7 +61,7 @@ func main(){
 				fmt.Println(err)
 				continue
 			}
-			addrtouse := w.Address[addidx]
+			addrtouse := nd.Wallet.Address[addidx]
 			fmt.Println("Using ",hex.EncodeToString(addrtouse[:]))
 			fmt.Println("Select Filename of Transaction to send")
 			filename, _ := reader.ReadString('\n')
@@ -71,7 +69,7 @@ func main(){
 
 			txtosend := cnet.LoadFTX(filename)
 			txtosend.Meta.Address = addrtouse
-			txtosend.Meta.Pubkey = w.Keys[addidx].PublicKey
+			txtosend.Meta.Pubkey = nd.Wallet.Keys[addidx].PublicKey
 			txtosend.Meta.TimePrepared = time.Now().Unix()
 			txtosend.SetHash()
 
@@ -89,13 +87,14 @@ func main(){
 			filename, _ := reader.ReadString('\n')
 			filename = strings.TrimSpace(filename)
 			ioutil.WriteFile(filename,w.Dump(),0644)
+			nd.Wallet = w
 		case 5:
 			fmt.Println("Select Filename of wallet")
 			filename, _ := reader.ReadString('\n')
 			filename = strings.TrimSpace(filename)
 			rawdata,err := ioutil.ReadFile(filename)
 			wallet.CheckError(err)
-			w = wallet.LoadWallet(rawdata)
+			nd.Wallet = wallet.LoadWallet(rawdata)
 
 		case 10:
 			fmt.Println("Exiting")
