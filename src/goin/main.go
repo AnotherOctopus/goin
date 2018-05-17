@@ -45,15 +45,28 @@ func main(){
 		}
 		switch i {
 		case 1:
-			if nd.Wallet == nil {
-				fmt.Println("Select a Wallet First!")
+			if len(nd.Wallets) == 0{
+				fmt.Println("Load a Wallet First!")
 				break
 			}
-			fmt.Println("Select an Address to use")
-			for i,addr := range nd.Wallet.Address {
-				fmt.Println(fmt.Sprintf("[%v]: %v",i,hex.EncodeToString(addr[:])))
+			fmt.Println("Select a Wallet index to use")
+			for i := range nd.Wallets {
+				fmt.Println(fmt.Sprintf("[%v]",i))
 			}
 			text, _ := reader.ReadString('\n')
+			text = strings.TrimSpace(text)
+			windex,err := strconv.ParseInt(text,10,8)
+			if err != nil {
+				fmt.Println("INPUT IS NOT A NUMBER")
+				fmt.Println(err)
+				continue
+			}
+			w := nd.Wallets[windex]
+			fmt.Println("Select an Address to use")
+			for i,addr := range w.Address {
+				fmt.Println(fmt.Sprintf("[%v]: %v",i,hex.EncodeToString(addr[:])))
+			}
+			text, _ = reader.ReadString('\n')
 			text = strings.TrimSpace(text)
 			addidx,err := strconv.ParseInt(text,10,8)
 			if err != nil {
@@ -61,7 +74,7 @@ func main(){
 				fmt.Println(err)
 				continue
 			}
-			addrtouse := nd.Wallet.Address[addidx]
+			addrtouse := w.Address[addidx]
 			fmt.Println("Using ",hex.EncodeToString(addrtouse[:]))
 			fmt.Println("Select Filename of Transaction to send")
 			filename, _ := reader.ReadString('\n')
@@ -69,7 +82,7 @@ func main(){
 
 			txtosend := cnet.LoadFTX(filename)
 			txtosend.Meta.Address = addrtouse
-			txtosend.Meta.Pubkey = nd.Wallet.Keys[addidx].PublicKey
+			txtosend.Meta.Pubkey = w.Keys[addidx].PublicKey
 			txtosend.Meta.TimePrepared = time.Now().Unix()
 			txtosend.SetHash()
 
@@ -79,22 +92,25 @@ func main(){
 			fmt.Println("Sent")
 		case 2:
 			fmt.Println("Prep")
+
 		case 3:
 			fmt.Println("Balence")
+
 		case 4:
 			w := wallet.NewWallet(3)
 			fmt.Println("Select Filename of where to save wallet")
 			filename, _ := reader.ReadString('\n')
 			filename = strings.TrimSpace(filename)
 			ioutil.WriteFile(filename,w.Dump(),0644)
-			nd.Wallet = w
+			nd.Wallets = append(nd.Wallets,w)
+
 		case 5:
 			fmt.Println("Select Filename of wallet")
 			filename, _ := reader.ReadString('\n')
 			filename = strings.TrimSpace(filename)
 			rawdata,err := ioutil.ReadFile(filename)
 			wallet.CheckError(err)
-			nd.Wallet = wallet.LoadWallet(rawdata)
+			nd.Wallets = append(nd.Wallets, wallet.LoadWallet(rawdata))
 
 		case 10:
 			fmt.Println("Exiting")

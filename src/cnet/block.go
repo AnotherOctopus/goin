@@ -1,3 +1,4 @@
+//Block implements the block and the block structure
 package cnet
 
 import (
@@ -13,18 +14,19 @@ import (
 )
 
 type Block struct{
-	blocksize uint64
+	blocksize uint64 // How many bytes are in a block
 	header struct{
-		prevBlockHash [constants.HASHSIZE]byte
-		transHash []byte
-		tStamp uint64
-		target uint32
-		noncetry uint32
+		prevBlockHash [constants.HASHSIZE]byte // The hash of the previous block
+		transHash []byte // The Merkle root of all the transactions
+		tStamp uint64 // When this block was mined
+		target uint32 // The ease of this block
+		noncetry uint32 // Nonce for hash tests
 	}
-	transCnt uint32
-	txs []Transaction
+	transCnt uint32 // How many transactions are in this block
+	txs []Transaction // The actual transactions
 }
 
+// Serializes the block
 func (bl Block) Dump() (int, []byte){
 	bBlock := make([]byte,bl.blocksize)
 	binary.LittleEndian.PutUint64(bBlock[0:8], bl.blocksize)
@@ -41,12 +43,14 @@ func (bl Block) Dump() (int, []byte){
 	return indx, bBlock
 }
 
+// Generates the hash of the whole block
 func (bl Block) Hash() ([constants.HASHSIZE] byte){
 	_, blBytes := bl.Dump()
 	blHash := sha256.Sum256(blBytes)
 	return blHash
 }
 
+// Number of bytes in the header
 func (bl Block) HeaderSize()(int){
 	size := 0
 	size += 32 // prevBlockHash
@@ -56,6 +60,8 @@ func (bl Block) HeaderSize()(int){
 	size += 4 // noncetry
 	return size
 }
+
+//For printing uses
 func (bl Block) String()(string){
 	retstring := ""
 	retstring += "Block Made At: " + strconv.Itoa(int(bl.header.tStamp)) + "\n"
@@ -70,6 +76,7 @@ func (bl Block) String()(string){
 	return retstring
 }
 
+// How the genesis block is defined
 func CreateGenesisBlock(creator * wallet.Wallet)(bl Block){
 	bl.header.prevBlockHash = [constants.HASHSIZE]byte{0}
 	bl.header.tStamp = uint64(100)//time.Now().Unix())
@@ -103,6 +110,8 @@ func CreateGenesisBlock(creator * wallet.Wallet)(bl Block){
 	bl.transCnt = uint32(len(bl.txs))
 	return
 }
+
+// Checks the block for a working nonce
 func (bl Block) CheckNonce(nonce uint32) (bool){
 	bl.header.noncetry = nonce
 	hash := bl.Hash()
@@ -115,6 +124,8 @@ func (bl Block) CheckNonce(nonce uint32) (bool){
 		return false
 	}
 }
+
+// Runs the check nonce over and over
 func mine(w * wallet.Wallet){
 	for i := 0; i  < math.MaxInt64; i += 1{
 		log.Println("Trying ",i)

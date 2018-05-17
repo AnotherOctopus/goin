@@ -1,3 +1,4 @@
+// Transaction defines the transaction struct and the useful functions that are relevant to transactions
 package cnet
 
 import (
@@ -32,20 +33,24 @@ type Transaction struct {
 		Pubkey     rsa.PublicKey  //Payers public key
 		Address    [constants.ADDRESSSIZE]byte  //Payers address
 	}
-	Inputs [] input `json:"Inputs"`
-	Outputs [] output `json:"Outputs"`
+	Inputs [] input `json:"Inputs"` // Inputs?
+	Outputs [] output `json:"Outputs"` // Outputs?
 	Hash [constants.HASHSIZE]byte //Hash of the whole transaction
 }
 
+//Error associated with transaction
 func (tx Transaction) Error() string {
 	return "TRANSACTION Not Valid:" + hex.EncodeToString(tx.Hash[:])
 }
 
+//transaction checkerror function
 func checkerror(err error) {
 	if err != nil {
 		fmt.Println("Error: ", err)
 	}
 }
+
+//Defines print
 func (tx Transaction) String() (string) {
 	retstring := ""
 	retstring += "	TX Hash: " + hex.EncodeToString(tx.Hash[:]) + "\n"
@@ -62,6 +67,8 @@ func (tx Transaction) String() (string) {
 	}
 	return retstring
 }
+
+// Takes the transaction and sets the has field
 func (tx * Transaction) SetHash() (err error){
 	tx.Hash = [constants.HASHSIZE]byte{}
 	ret, err := json.Marshal(tx)
@@ -71,6 +78,8 @@ func (tx * Transaction) SetHash() (err error){
 	tx.Hash = sha256.Sum256(ret)
 	return nil
 }
+
+// Serialize a transaction
 func (tx Transaction) Dump() (size int, ret []byte) {
 	tx.SetHash()
 	ret, err := json.Marshal(tx)
@@ -79,12 +88,14 @@ func (tx Transaction) Dump() (size int, ret []byte) {
 	return
 }
 
+// Load a serialized transaction
 func LoadTX(b []byte) (tx Transaction) {
 	err := json.Unmarshal(b, tx)
 	checkerror(err)
 	return
 }
 
+// Load a transaction from a file
 func LoadFTX(filename string)(rettx Transaction){
 	var pretx Transaction
 	raw,err := ioutil.ReadFile(filename)
@@ -94,6 +105,7 @@ func LoadFTX(filename string)(rettx Transaction){
 	return
 }
 
+//Calculates the merkle root of a list of transactions
 func Merkleify(txs [] Transaction)([]byte){
 	hashlist := make([][]byte,len(txs))
 	for i, tx := range txs {
@@ -117,29 +129,31 @@ func Merkleify(txs [] Transaction)([]byte){
 	}
 	return hashlist[0]
 }
-func (o output)HashFunc() (crypto.Hash){
-	return 0
-}
+
+// Generates the signature associated with an output
 func (o output) GenSignature(key * rsa.PrivateKey)([]byte){
-	amountBytes := make([]byte,4)
+	amountBytes := make([]byte,4) // This will be a concatonation of the amount and the recipient
 	binary.LittleEndian.PutUint32(amountBytes,o.Amount)
 	toSign := append(amountBytes,o.Addr[:]...)
-	key.Sign( rand.Reader,toSign,o)
-	sig,err := rsa.SignPKCS1v15(rand.Reader,key,o,toSign)
+	sig,err := rsa.SignPKCS1v15(rand.Reader,key,crypto.SHA256,toSign)
 	checkerror(err)
 	return sig
 }
 
+// Verifies the signature on an output
 func (o output) VerifySignature(key * rsa.PublicKey)(error){
 	amountBytes := make([]byte,4)
 	binary.LittleEndian.PutUint32(amountBytes,o.Amount)
 	toVerify := append(amountBytes,o.Addr[:]...)
-	return rsa.VerifyPKCS1v15(key,o,toVerify,o.Signature)
+	return rsa.VerifyPKCS1v15(key,crypto.SHA256,toVerify,o.Signature)
 }
 
+// Returns the transaction object of an associated hash
 func getTxFromHash([constants.HASHSIZE] byte)(tx Transaction) {
 	return  tx
 }
+
+// Verifies that the transaction object is valid
 func verifyTx(tx Transaction)(err error) {
 	// Check if the the Transaction is valid
 
@@ -186,6 +200,7 @@ func verifyTx(tx Transaction)(err error) {
 	return nil
 }
 
+//Saves a transaction
 func saveTx(tx Transaction)(err error){
 
 	return nil

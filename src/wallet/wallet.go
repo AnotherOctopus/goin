@@ -1,3 +1,4 @@
+// Wallet implements the wallet structure, of which each node can have an arbitrary number
 package wallet
 
 import (
@@ -14,20 +15,24 @@ import (
 )
 
 type Wallet struct {
-	Keys       []*rsa.PrivateKey
-	Address    [][constants.ADDRESSSIZE]byte
-	ClaimedTxs [][constants.HASHSIZE]byte
+	Keys       []*rsa.PrivateKey // The keys that this wallet has
+	Address    [][constants.ADDRESSSIZE]byte // The Addresses of this wallet
+	ClaimedTxs [][constants.HASHSIZE]byte // The transactions that this wallet can claim
 }
+
+//Checking error
 func CheckError(err error) {
 	if err != nil {
 		fmt.Println("Error: ", err)
 	}
 }
+
+//Creates a new wallet with some number of keys
 func NewWallet(numkeys int) (* Wallet) {
 	w := new(Wallet)
 	w.Keys = make([]*rsa.PrivateKey,numkeys)
 	w.Address = make([][constants.ADDRESSSIZE]byte,numkeys)
-	for i,_ := range w.Keys{
+	for i := range w.Keys{
 		skey, err := rsa.GenerateKey(rand.Reader, 2046)
 		CheckError(err)
 		w.Keys[i]	= skey
@@ -35,6 +40,8 @@ func NewWallet(numkeys int) (* Wallet) {
 	}
 	return w
 }
+
+//Serializes the wallet
 func (w Wallet) Dump()([]byte){
 	ret := make([]byte,constants.PRIVKEYSIZE*len(w.Keys)+
 		               constants.ADDRESSSIZE*len(w.Address)+
@@ -58,6 +65,7 @@ func (w Wallet) Dump()([]byte){
 	return ret
 }
 
+// Loads a wallet from a serialized stream
 func LoadWallet(b []byte)(*Wallet){
 	w := NewWallet(0)
 	idx := 0
@@ -85,6 +93,7 @@ func LoadWallet(b []byte)(*Wallet){
 	}
 	return w
 }
+// changes a public key to an address
 func Pkeytoaddress( pkey rsa.PublicKey)([constants.ADDRESSSIZE]byte){
 	EBytes := make([]byte, 8)
 	NBytes := pkey.N.Bytes()
@@ -100,6 +109,7 @@ func Pkeytoaddress( pkey rsa.PublicKey)([constants.ADDRESSSIZE]byte){
 	return ret
 }
 
+//For printing
 func (w Wallet) String()(string){
 	retstring := ""
 	retstring += "Number of Addresses: "
