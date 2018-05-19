@@ -13,7 +13,11 @@ import (
 	"crypto"
 	"strconv"
 	"encoding/hex"
+	"gopkg.in/mgo.v2"
+	//"gopkg.in/mgo.v2/bson"
+	"reflect"
 	"wallet"
+	"log"
 )
 
 type input struct {
@@ -89,20 +93,29 @@ func (tx Transaction) Dump() (size int, ret []byte) {
 }
 
 // Load a serialized transaction
-func LoadTX(b []byte) (tx Transaction) {
-	err := json.Unmarshal(b, tx)
+func LoadTX(b []byte) (* Transaction) {
+	log.Println(string(b))
+	var msglen int
+	for i, r := range b {
+		if r == 0x00{
+			msglen = i
+			break
+		}
+	}
+	tx := new(Transaction)
+	err := json.Unmarshal(b[:msglen], tx)
 	checkerror(err)
-	return
+	return tx
 }
 
 // Load a transaction from a file
-func LoadFTX(filename string)(rettx Transaction){
-	var pretx Transaction
+func LoadFTX(filename string)(* Transaction){
+	rettx := new(Transaction)
 	raw,err := ioutil.ReadFile(filename)
 	checkerror(err)
-	err = json.Unmarshal(raw,&pretx)
+	err = json.Unmarshal(raw,&rettx)
 	checkerror(err)
-	return
+	return rettx
 }
 
 //Calculates the merkle root of a list of transactions
@@ -153,6 +166,7 @@ func getTxFromHash([constants.HASHSIZE] byte)(tx Transaction) {
 	return  tx
 }
 
+
 // Verifies that the transaction object is valid
 func verifyTx(tx Transaction)(err error) {
 	// Check if the the Transaction is valid
@@ -164,6 +178,9 @@ func verifyTx(tx Transaction)(err error) {
 		return tx
 	}
 
+	if reflect.DeepEqual(tx,GenesisBlock()){
+		return nil
+	}
 	// Check address
 	if wallet.Pkeytoaddress(tx.Meta.Pubkey) != tx.Meta.Address {
 		return tx
@@ -201,7 +218,11 @@ func verifyTx(tx Transaction)(err error) {
 }
 
 //Saves a transaction
-func saveTx(tx Transaction)(err error){
-
+func SaveTx(tx Transaction)(err error){
+	sess, err := mgo.Dial("localhost")
+	checkerror(err)
+	defer sess.Close()
+	handle := sess.DB("Goin").C("Transactions")
+	handle.Insert(tx)
 	return nil
 }

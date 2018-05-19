@@ -21,7 +21,7 @@ func New(peerips []string)(nd Node){
 
 	nd.peers =	make([]string,len(peerips))
 	for i, p := range peerips {
-		nd.peers[i] = p + ":" + constants.TRANSBROADPORT
+		nd.peers[i] = p + ":" + constants.TRANSRXPORT
 	}
 	nd.Wallets = make([]*wallet.Wallet,0)
 	return
@@ -45,7 +45,7 @@ func (nd Node) SendTx (tx Transaction)(reterr error){
 func (nd *Node) handleTX(tx Transaction) {
 	if verifyTx(tx) == nil {
 		// Save the transaction
-		saveTx(tx)
+		SaveTx(tx)
 		// If this transaction is relevant to us, save it
 		for _, txOut := range tx.Outputs {
 			for _, w := range nd.Wallets{
@@ -87,6 +87,6 @@ func (nd *Node) TxListener() {
 		conn.Read(txbuffer)
 		tx:= LoadTX(txbuffer)
 		// Handle connections in a new goroutine.
-		go nd.handleTX(tx)
+		go nd.handleTX(*tx)
 	}
 }

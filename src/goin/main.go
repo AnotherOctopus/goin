@@ -19,7 +19,9 @@ func CheckError(err error) {
 		os.Exit(1)
 	}
 }
+
 func main(){
+	//test()
 	peerips := []string{"127.0.0.1"}
 	nd := cnet.New(peerips)
 	go nd.TxListener()
@@ -86,8 +88,8 @@ func main(){
 			txtosend.Meta.TimePrepared = time.Now().Unix()
 			txtosend.SetHash()
 
-			log.Println(txtosend)
-			err = nd.SendTx(txtosend)
+			log.Println("SENDING TRANSACTION: ",txtosend.String())
+			err = nd.SendTx(*txtosend)
 			CheckError(err)
 			fmt.Println("Sent")
 		case 2:
@@ -111,6 +113,7 @@ func main(){
 			rawdata,err := ioutil.ReadFile(filename)
 			wallet.CheckError(err)
 			nd.Wallets = append(nd.Wallets, wallet.LoadWallet(rawdata))
+
 
 		case 10:
 			fmt.Println("Exiting")

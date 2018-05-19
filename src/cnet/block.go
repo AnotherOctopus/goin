@@ -11,17 +11,22 @@ import (
 	"math/big"
 	"log"
 	"math"
+	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
+	"encoding/base64"
+	"fmt"
 )
 
 type Block struct{
 	blocksize uint64 // How many bytes are in a block
-	header struct{
-		prevBlockHash [constants.HASHSIZE]byte // The hash of the previous block
-		transHash []byte // The Merkle root of all the transactions
-		tStamp uint64 // When this block was mined
-		target uint32 // The ease of this block
-		noncetry uint32 // Nonce for hash tests
+	Header struct{
+		PrevBlockHash [constants.HASHSIZE]byte // The hash of the previous block
+		TransHash []byte // The Merkle root of all the transactions
+		Tstamp uint64 // When this block was mined
+		Target uint32 // The ease of this block
+		Noncetry uint32 // Nonce for hash tests
 	}
+	Hash [constants.HASHSIZE]byte
 	transCnt uint32 // How many transactions are in this block
 	txs []Transaction // The actual transactions
 }
@@ -30,9 +35,9 @@ type Block struct{
 func (bl Block) Dump() (int, []byte){
 	bBlock := make([]byte,bl.blocksize)
 	binary.LittleEndian.PutUint64(bBlock[0:8], bl.blocksize)
-	binary.LittleEndian.PutUint64(bBlock[8:16], bl.header.tStamp)
-	binary.LittleEndian.PutUint32(bBlock[16:20], bl.header.target)
-	binary.LittleEndian.PutUint32(bBlock[20:24], bl.header.noncetry)
+	binary.LittleEndian.PutUint64(bBlock[8:16], bl.Header.Tstamp)
+	binary.LittleEndian.PutUint32(bBlock[16:20], bl.Header.Target)
+	binary.LittleEndian.PutUint32(bBlock[20:24], bl.Header.Noncetry)
 	binary.LittleEndian.PutUint32(bBlock[24:28], bl.transCnt)
 	indx := 28
 	for _,tx := range bl.txs{
@@ -44,29 +49,29 @@ func (bl Block) Dump() (int, []byte){
 }
 
 // Generates the hash of the whole block
-func (bl Block) Hash() ([constants.HASHSIZE] byte){
+func (bl Block) HashBlock() ([constants.HASHSIZE] byte){
 	_, blBytes := bl.Dump()
 	blHash := sha256.Sum256(blBytes)
 	return blHash
 }
 
-// Number of bytes in the header
+// Number of bytes in the Header
 func (bl Block) HeaderSize()(int){
 	size := 0
-	size += 32 // prevBlockHash
-	size += len(bl.header.transHash) //transHash
-	size += 8 // tStamp
-	size += 4 // target
-	size += 4 // noncetry
+	size += 32 // PrevBlockHash
+	size += len(bl.Header.TransHash) //TransHash
+	size += 8 // Tstamp
+	size += 4 // Target
+	size += 4 // Noncetry
 	return size
 }
 
 //For printing uses
 func (bl Block) String()(string){
 	retstring := ""
-	retstring += "Block Made At: " + strconv.Itoa(int(bl.header.tStamp)) + "\n"
-	retstring += "Previous Block: "  + hex.EncodeToString(bl.header.prevBlockHash[:]) + "\n"
-	retstring += "Ease: " + strconv.Itoa(int(bl.header.target)) + "\n"
+	retstring += "Block Made At: " + strconv.Itoa(int(bl.Header.Tstamp)) + "\n"
+	retstring += "Previous Block: "  + hex.EncodeToString(bl.Header.PrevBlockHash[:]) + "\n"
+	retstring += "Ease: " + strconv.Itoa(int(bl.Header.Target)) + "\n"
 	retstring += "Transactions: \n"
 	for _,tx := range bl.txs {
 		retstring += "TX 1: \n"
@@ -78,10 +83,10 @@ func (bl Block) String()(string){
 
 // How the genesis block is defined
 func CreateGenesisBlock(creator * wallet.Wallet)(bl Block){
-	bl.header.prevBlockHash = [constants.HASHSIZE]byte{0}
-	bl.header.tStamp = uint64(100)//time.Now().Unix())
-	bl.header.target = 243
-	bl.header.noncetry = 0
+	bl.Header.PrevBlockHash = [constants.HASHSIZE]byte{0}
+	bl.Header.Tstamp = uint64(100)//time.Now().Unix())
+	bl.Header.Target = 243
+	bl.Header.Noncetry = 0
 
 	var tx Transaction
 	tx.Meta.TimePrepared = int64(100)//time.Now().Unix()
@@ -105,19 +110,32 @@ func CreateGenesisBlock(creator * wallet.Wallet)(bl Block){
 	}
 
 	totalTxSize += bl.HeaderSize()
-	bl.header.transHash = Merkleify(bl.txs)
+	bl.Header.TransHash = Merkleify(bl.txs)
 	bl.blocksize = uint64(totalTxSize)
 	bl.transCnt = uint32(len(bl.txs))
 	return
 }
-
+func GenesisBlock()(Block){
+	sess, err := mgo.Dial("localhost")
+	checkerror(err)
+	defer sess.Close()
+	handle := sess.DB("Goin").C("Blocks")
+	genblockHash,err := base64.StdEncoding.DecodeString("AAXK33DemUW0nQGpfu3SRuOBkIfp1hdsCk3Qgq8mzl0=")
+	checkerror(err)
+	genBlkQuery := handle.Find(bson.M{"hash":genblockHash})
+	var genblk Block
+	err = genBlkQuery.One(&genblk)
+	checkerror(err)
+	fmt.Print(genblk)
+	return genblk
+}
 // Checks the block for a working nonce
 func (bl Block) CheckNonce(nonce uint32) (bool){
-	bl.header.noncetry = nonce
-	hash := bl.Hash()
+	bl.Header.Noncetry = nonce
+	hash := bl.HashBlock()
 	hashval := big.NewInt(0).SetBytes(hash[:])
 	maxHash := big.NewInt(1)
-	maxHash = maxHash.Lsh(maxHash,uint(bl.header.target))
+	maxHash = maxHash.Lsh(maxHash,uint(bl.Header.Target))
 	if hashval.Cmp(maxHash) < 0 {
 		return true
 	}else {
@@ -125,6 +143,20 @@ func (bl Block) CheckNonce(nonce uint32) (bool){
 	}
 }
 
+func SaveBlock(bl Block)(error){
+	sess, err := mgo.Dial("localhost")
+	checkerror(err)
+	defer sess.Close()
+	handle := sess.DB("Goin").C("Blocks")
+	handle.Insert(bl)
+	return nil
+}
+
+func (bl * Block) SetHash(nonce uint32) {
+	bl.Header.Noncetry = nonce
+	bl.Hash = bl.HashBlock()
+	return
+}
 // Runs the check nonce over and over
 func mine(w * wallet.Wallet){
 	for i := 0; i  < math.MaxInt64; i += 1{
