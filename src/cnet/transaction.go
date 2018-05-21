@@ -20,15 +20,20 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-type input struct {
+type Input struct {
 	PrevTransHash [constants.HASHSIZE]byte //Input transaction that is being spent
 	OutIdx        uint32 //Index of the particular transaction
 }
 
-type output struct {
+type Output struct {
 	Addr            [constants.ADDRESSSIZE]byte //Address to send the money to
 	Amount          uint32 //Amount sending
-	Signature       []byte //The hash of the output encrypted with the payers private key
+	Signature       []byte //The hash of the Output encrypted with the payers private key
+}
+
+type AnonTransaction struct {
+	Inputs [] Input `json:"Inputs"` // Inputs?
+	Outputs [] Output `json:"Output"` // Output?
 }
 
 type Transaction struct {
@@ -37,8 +42,8 @@ type Transaction struct {
 		Pubkey     rsa.PublicKey  //Payers public key
 		Address    [constants.ADDRESSSIZE]byte  //Payers address
 	}
-	Inputs [] input `json:"Inputs"` // Inputs?
-	Outputs [] output `json:"Outputs"` // Outputs?
+	Inputs [] Input `json:"Inputs"` // Inputs?
+	Outputs [] Output `json:"Output"` // Output?
 	Hash [constants.HASHSIZE]byte //Hash of the whole transaction
 }
 
@@ -142,8 +147,8 @@ func Merkleify(txs [] Transaction)([]byte){
 	return hashlist[0]
 }
 
-// Generates the signature associated with an output
-func (o output) GenSignature(key * rsa.PrivateKey)([]byte){
+// Generates the signature associated with an Output
+func (o Output) GenSignature(key * rsa.PrivateKey)([]byte){
 	amountBytes := make([]byte,4) // This will be a concatonation of the amount and the recipient
 	binary.LittleEndian.PutUint32(amountBytes,o.Amount)
 	toSign := append(amountBytes,o.Addr[:]...)
@@ -153,8 +158,8 @@ func (o output) GenSignature(key * rsa.PrivateKey)([]byte){
 	return sig
 }
 
-// Verifies the signature on an output
-func (o output) VerifySignature(key * rsa.PublicKey)(error){
+// Verifies the signature on an Output
+func (o Output) VerifySignature(key * rsa.PublicKey)(error){
 	amountBytes := make([]byte,4)
 	binary.LittleEndian.PutUint32(amountBytes,o.Amount)
 	toVerify := append(amountBytes,o.Addr[:]...)
@@ -196,13 +201,13 @@ func verifyTx(tx Transaction)(err error) {
 		return tx
 	}
 
-	// Saving the total input and output
+	// Saving the total Input and Output
 	totalOut := 0
 	totalIn := 0
 
-	// Verify the signature of each output
+	// Verify the signature of each Output
 	for _, outp := range tx.Outputs {
-		//Check Signature of outputs
+		//Check Signature of Outputs
 		err = outp.VerifySignature(&tx.Meta.Pubkey)
 		if err != nil {
 			return err
@@ -214,7 +219,7 @@ func verifyTx(tx Transaction)(err error) {
 	for _, inp := range tx.Inputs {
 		prevTx := getTxFromHash(inp.PrevTransHash)
 		totalIn += int(prevTx.Outputs[inp.OutIdx].Amount)
-		//Verify that the previous output was directed to this address
+		//Verify that the previous Output was directed to this address
 		if prevTx.Outputs[inp.OutIdx].Addr != tx.Meta.Address {
 			return tx
 		}

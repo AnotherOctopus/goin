@@ -11,6 +11,9 @@ import (
 	"io/ioutil"
 	"encoding/hex"
 	"time"
+	"encoding/json"
+	"encoding/base64"
+	"constants"
 )
 func CheckError(err error) {
 	if err != nil {
@@ -55,7 +58,7 @@ func test(){
 	panic("Done")
 }
 func main(){
-	test()
+	//test()
 	peerips := []string{"127.0.0.1"}
 	nd := cnet.New(peerips)
 	go nd.TxListener()
@@ -126,7 +129,84 @@ func main(){
 			CheckError(err)
 			fmt.Println("Sent")
 		case 2:
-			fmt.Println("Prep")
+			savetx := new(cnet.AnonTransaction)
+			savetx.Outputs = make([]cnet.Output,0)
+			savetx.Inputs = make([]cnet.Input,0)
+			fmt.Println("Select Filename of Transaction to prepare")
+			filename, _ := reader.ReadString('\n')
+			filename = strings.TrimSpace(filename)
+			var inp byte
+			for inp != 'd'{
+				fmt.Println("Select An Option")
+				fmt.Println("[i] Add Input")
+				fmt.Println("[o] Add Output")
+				fmt.Println("[d] Finish and Save")
+				rawinp, _ := reader.ReadString('\n')
+				inp = rawinp[0]
+				switch inp {
+				case 'i':
+					var newInput cnet.Input
+					var hashbuffer [constants.HASHSIZE]byte
+					fmt.Println("Hash for Previous Transaction for input?")
+					prev, _ := reader.ReadString('\n')
+					prev = strings.TrimSpace(prev)
+					CheckError(err)
+					newHash, err := base64.StdEncoding.DecodeString(prev)
+					if err != nil {
+						fmt.Println("Not Valid b64")
+						continue
+					}
+					fmt.Println("Index for Previous Transaction for input?")
+					prev, _ = reader.ReadString('\n')
+					prev = strings.TrimSpace(prev)
+					CheckError(err)
+					transidx,err := strconv.ParseInt(prev,10,8)
+					if err != nil {
+						fmt.Println("INPUT IS NOT A NUMBER")
+						fmt.Println(err)
+						continue
+					}
+					newInput.OutIdx = uint32(transidx)
+					copy(hashbuffer[:],newHash)
+					newInput.PrevTransHash = hashbuffer
+					savetx.Inputs = append(savetx.Inputs,newInput)
+
+				case 'o':
+					var newOutput cnet.Output
+					var hashbuffer [constants.ADDRESSSIZE]byte
+					fmt.Println("Hash for Address for output?")
+					out, _ := reader.ReadString('\n')
+					out = strings.TrimSpace(out)
+					CheckError(err)
+					newHash, err := base64.StdEncoding.DecodeString(out)
+					if err != nil {
+						fmt.Println("Not Valid b64")
+						continue
+					}
+					fmt.Println("Amount to send?")
+					out, _ = reader.ReadString('\n')
+					out = strings.TrimSpace(out)
+					CheckError(err)
+					amount,err := strconv.ParseInt(out,10,8)
+					if err != nil {
+						fmt.Println("INPUT IS NOT A NUMBER")
+						fmt.Println(err)
+						continue
+					}
+					newOutput.Amount = uint32(amount)
+					copy(hashbuffer[:],newHash)
+					newOutput.Signature = make([]byte,0)
+					newOutput.Addr = hashbuffer
+					savetx.Outputs = append(savetx.Outputs,newOutput)
+				case 'd':
+					data,err := json.Marshal(savetx)
+					CheckError(err)
+					ioutil.WriteFile(filename,data,0644)
+				default:
+					fmt.Println(inp, " is not a valid input")
+				}
+			}
+
 
 		case 3:
 			fmt.Println("Balence")

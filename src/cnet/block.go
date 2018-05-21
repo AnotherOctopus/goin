@@ -90,8 +90,8 @@ func CreateGenesisBlock(creator * wallet.Wallet)(bl Block){
 	tx.Meta.TimePrepared = int64(100)//time.Now().Unix()
 	tx.Meta.Pubkey = creator.Keys[0].PublicKey
 	tx.Meta.Address = creator.Address[0]
-	tx.Inputs = make([]input,1)
-	tx.Outputs = make([]output,1)
+	tx.Inputs = make([]Input,1)
+	tx.Outputs = make([]Output,1)
 	tx.Inputs[0].OutIdx = 0
 	copy(tx.Inputs[0].PrevTransHash[:], []byte("Tutturu!"))
 	tx.Outputs[0].Amount = 100
