@@ -43,7 +43,8 @@ func (nd Node) SendTx (tx Transaction)(reterr error){
 
 //Take the received transaction and save and load it
 func (nd *Node) handleTX(tx Transaction) {
-	if verifyTx(tx) == nil {
+	verified := verifyTx(tx)
+	if verified == nil {
 		// Save the transaction
 		SaveTx(tx)
 		// If this transaction is relevant to us, save it
@@ -62,6 +63,7 @@ func (nd *Node) handleTX(tx Transaction) {
 		}
 	}else {
 		fmt.Println("Invalid transaction Recieved")
+		fmt.Println(verified)
 	}
 }
 

@@ -14,7 +14,6 @@ import (
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"encoding/base64"
-	"fmt"
 )
 
 type Block struct{
@@ -28,7 +27,7 @@ type Block struct{
 	}
 	Hash [constants.HASHSIZE]byte
 	transCnt uint32 // How many transactions are in this block
-	txs []Transaction // The actual transactions
+	Txs [][constants.HASHSIZE]byte // The actual transactions
 }
 
 // Serializes the block
@@ -40,10 +39,9 @@ func (bl Block) Dump() (int, []byte){
 	binary.LittleEndian.PutUint32(bBlock[20:24], bl.Header.Noncetry)
 	binary.LittleEndian.PutUint32(bBlock[24:28], bl.transCnt)
 	indx := 28
-	for _,tx := range bl.txs{
-			txSize,txBytes := tx.Dump()
-		 	copy(bBlock[indx:indx+txSize],txBytes)
-		 	indx += txSize
+	for _,tx := range bl.Txs{
+		 	copy(bBlock[indx:indx+len(tx)],tx[:])
+		 	indx += len(tx)
 	}
 	return indx, bBlock
 }
@@ -73,9 +71,9 @@ func (bl Block) String()(string){
 	retstring += "Previous Block: "  + hex.EncodeToString(bl.Header.PrevBlockHash[:]) + "\n"
 	retstring += "Ease: " + strconv.Itoa(int(bl.Header.Target)) + "\n"
 	retstring += "Transactions: \n"
-	for _,tx := range bl.txs {
+	for _,tx := range bl.Txs {
 		retstring += "TX 1: \n"
-		retstring += tx.String()
+		retstring += getTxFromHash(tx).String()
 	}
 	retstring += "\n"
 	return retstring
@@ -100,19 +98,25 @@ func CreateGenesisBlock(creator * wallet.Wallet)(bl Block){
 	tx.Outputs[0].Addr = creator.Address[0]
 	tx.Outputs[0].Signature = tx.Outputs[0].GenSignature(creator.Keys[0])
 	tx.SetHash()
+	SaveTx(tx)
 
-	bl.txs = make([]Transaction,1)
-	bl.txs[0] = tx
+	bl.Txs = make([][constants.HASHSIZE]byte,1)
+	bl.Txs[0] = tx.Hash
 	totalTxSize := 0
-	for _, tx := range bl.txs {
-		txSize, _ := tx.Dump()
+	for _, tx := range bl.Txs {
+		txSize:= len(tx)
 		totalTxSize += txSize
 	}
 
 	totalTxSize += bl.HeaderSize()
-	bl.Header.TransHash = Merkleify(bl.txs)
+	fulltxs := make ([]Transaction,1)
+	fulltxs[0] = getTxFromHash(tx.Hash)
+	bl.Header.TransHash = Merkleify(fulltxs)
 	bl.blocksize = uint64(totalTxSize)
-	bl.transCnt = uint32(len(bl.txs))
+	bl.transCnt = uint32(len(bl.Txs))
+	log.Println(bl)
+	bl.SetHash(mine(creator,bl))
+
 	return
 }
 func GenesisBlock()(Block){
@@ -120,13 +124,12 @@ func GenesisBlock()(Block){
 	checkerror(err)
 	defer sess.Close()
 	handle := sess.DB("Goin").C("Blocks")
-	genblockHash,err := base64.StdEncoding.DecodeString("AAXK33DemUW0nQGpfu3SRuOBkIfp1hdsCk3Qgq8mzl0=")
+	genblockHash,err := base64.StdEncoding.DecodeString("AABi8dOFlRxS3FcczaW372CP6/13Hnpt145fh2FmHVo=")
 	checkerror(err)
 	genBlkQuery := handle.Find(bson.M{"hash":genblockHash})
 	var genblk Block
 	err = genBlkQuery.One(&genblk)
 	checkerror(err)
-	fmt.Print(genblk)
 	return genblk
 }
 // Checks the block for a working nonce
@@ -158,12 +161,13 @@ func (bl * Block) SetHash(nonce uint32) {
 	return
 }
 // Runs the check nonce over and over
-func mine(w * wallet.Wallet){
+func mine(w * wallet.Wallet,bl Block)(validNonce uint32){
 	for i := 0; i  < math.MaxInt64; i += 1{
 		log.Println("Trying ",i)
-		if CreateGenesisBlock(w).CheckNonce(uint32(i)){
+		if bl.CheckNonce(uint32(i)){
 			log.Println(i," Success!")
-			break
+			return uint32(i)
 		}
 	}
+	return 0
 }

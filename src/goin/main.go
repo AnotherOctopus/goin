@@ -11,7 +11,6 @@ import (
 	"io/ioutil"
 	"encoding/hex"
 	"time"
-	"log"
 )
 func CheckError(err error) {
 	if err != nil {
@@ -19,9 +18,44 @@ func CheckError(err error) {
 		os.Exit(1)
 	}
 }
+func test(){
+	peerips := []string{"127.0.0.1"}
+	nd := cnet.New(peerips)
+	go nd.TxListener()
+	wait :=	time.NewTimer(time.Millisecond*100)
+	<-wait.C
+	fmt.Println("Listening for Transactions...")
+	fmt.Println("Launching Goin CLI! ")
 
+	filename := "firstwallet"
+	filename = strings.TrimSpace(filename)
+	rawdata,err := ioutil.ReadFile(filename)
+	wallet.CheckError(err)
+	nd.Wallets = append(nd.Wallets, wallet.LoadWallet(rawdata))
+
+	addidx := 0
+	windex := 0
+	filename = "tx1.json"
+	w := nd.Wallets[windex]
+	addrtouse := w.Address[addidx]
+
+	txtosend := cnet.LoadFTX(filename)
+	txtosend.Meta.Address = addrtouse
+	txtosend.Meta.Pubkey = w.Keys[addidx].PublicKey
+	txtosend.Meta.TimePrepared = time.Now().Unix()
+	txtosend.Outputs[0].Signature = txtosend.Outputs[0].GenSignature(w.Keys[addidx])
+	txtosend.SetHash()
+
+	err = nd.SendTx(*txtosend)
+	CheckError(err)
+	fmt.Println("Sent")
+
+	wait =	time.NewTimer(time.Second*2)
+	<-wait.C
+	panic("Done")
+}
 func main(){
-	//test()
+	test()
 	peerips := []string{"127.0.0.1"}
 	nd := cnet.New(peerips)
 	go nd.TxListener()
@@ -88,7 +122,6 @@ func main(){
 			txtosend.Meta.TimePrepared = time.Now().Unix()
 			txtosend.SetHash()
 
-			log.Println("SENDING TRANSACTION: ",txtosend.String())
 			err = nd.SendTx(*txtosend)
 			CheckError(err)
 			fmt.Println("Sent")

@@ -17,7 +17,7 @@ import (
 	//"gopkg.in/mgo.v2/bson"
 	"reflect"
 	"wallet"
-	"log"
+	"gopkg.in/mgo.v2/bson"
 )
 
 type input struct {
@@ -94,7 +94,6 @@ func (tx Transaction) Dump() (size int, ret []byte) {
 
 // Load a serialized transaction
 func LoadTX(b []byte) (* Transaction) {
-	log.Println(string(b))
 	var msglen int
 	for i, r := range b {
 		if r == 0x00{
@@ -148,7 +147,8 @@ func (o output) GenSignature(key * rsa.PrivateKey)([]byte){
 	amountBytes := make([]byte,4) // This will be a concatonation of the amount and the recipient
 	binary.LittleEndian.PutUint32(amountBytes,o.Amount)
 	toSign := append(amountBytes,o.Addr[:]...)
-	sig,err := rsa.SignPKCS1v15(rand.Reader,key,crypto.SHA256,toSign)
+	toSignHash := sha256.Sum256(toSign)
+	sig,err := rsa.SignPKCS1v15(rand.Reader,key,crypto.SHA256,toSignHash[:])
 	checkerror(err)
 	return sig
 }
@@ -158,12 +158,21 @@ func (o output) VerifySignature(key * rsa.PublicKey)(error){
 	amountBytes := make([]byte,4)
 	binary.LittleEndian.PutUint32(amountBytes,o.Amount)
 	toVerify := append(amountBytes,o.Addr[:]...)
-	return rsa.VerifyPKCS1v15(key,crypto.SHA256,toVerify,o.Signature)
+	toVerifyHash := sha256.Sum256(toVerify)
+	return rsa.VerifyPKCS1v15(key,crypto.SHA256,toVerifyHash[:],o.Signature)
 }
 
 // Returns the transaction object of an associated hash
-func getTxFromHash([constants.HASHSIZE] byte)(tx Transaction) {
-	return  tx
+func getTxFromHash(hash [constants.HASHSIZE] byte)(Transaction) {
+	var retTX Transaction
+	sess, err := mgo.Dial("localhost")
+	checkerror(err)
+	defer sess.Close()
+	handle := sess.DB("Goin").C("Transactions")
+	TXQuery := handle.Find(bson.M{"hash":hash})
+	err = TXQuery.One(&retTX)
+	checkerror(err)
+	return  retTX
 }
 
 
@@ -171,16 +180,17 @@ func getTxFromHash([constants.HASHSIZE] byte)(tx Transaction) {
 func verifyTx(tx Transaction)(err error) {
 	// Check if the the Transaction is valid
 
+	if reflect.DeepEqual(tx,getTxFromHash(GenesisBlock().Txs[0])){
+		return nil
+	}
 	// Check whole Hash
 	origHash := tx.Hash
 	tx.SetHash()
 	if tx.Hash != origHash {
+		tx.Hash = origHash
 		return tx
 	}
 
-	if reflect.DeepEqual(tx,GenesisBlock()){
-		return nil
-	}
 	// Check address
 	if wallet.Pkeytoaddress(tx.Meta.Pubkey) != tx.Meta.Address {
 		return tx
@@ -197,12 +207,18 @@ func verifyTx(tx Transaction)(err error) {
 		if err != nil {
 			return err
 		}
+		totalOut += int(outp.Amount)
 	}
 
-	// Verify that the previous transactions that it referances are valid
+	//Verify Inputs
 	for _, inp := range tx.Inputs {
 		prevTx := getTxFromHash(inp.PrevTransHash)
 		totalIn += int(prevTx.Outputs[inp.OutIdx].Amount)
+		//Verify that the previous output was directed to this address
+		if prevTx.Outputs[inp.OutIdx].Addr != tx.Meta.Address {
+			return tx
+		}
+		// Verify that the previous transactions that it referances are valid
 		err = verifyTx(prevTx)
 		if err != nil {
 			return err
@@ -211,6 +227,7 @@ func verifyTx(tx Transaction)(err error) {
 
 	// Verify that the total out is the total in
 	if totalIn != totalOut {
+		tx.Hash = origHash
 		return tx
 	}
 
