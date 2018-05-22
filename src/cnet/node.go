@@ -8,22 +8,28 @@ import (
 	"os"
 	"reflect"
 	"constants"
+	"txheap"
+	"container/heap"
 )
 
 type Node struct {
 	peers   []string // The nodes this node gossips to
 	Wallets []*wallet.Wallet // The wallets this node is using
+	mineQ   * txheap.TxHeap
 	isMiner bool // Whether this node should act as a miner
 }
 
 //New make a node that has no wallets it is using
 func New(peerips []string)(nd Node){
 
+
 	nd.peers =	make([]string,len(peerips))
 	for i, p := range peerips {
 		nd.peers[i] = p + ":" + constants.TRANSRXPORT
 	}
 	nd.Wallets = make([]*wallet.Wallet,0)
+	nd.mineQ = new(txheap.TxHeap)
+	heap.Init(nd.mineQ)
 	return
 }
 
@@ -47,6 +53,7 @@ func (nd *Node) handleTX(tx Transaction) {
 	if verified == nil {
 		// Save the transaction
 		SaveTx(tx)
+		heap.Push(nd.mineQ,tx)
 		// If this transaction is relevant to us, save it
 		for _, txOut := range tx.Outputs {
 			for _, w := range nd.Wallets{
@@ -89,6 +96,8 @@ func (nd *Node) TxListener() {
 		conn.Read(txbuffer)
 		tx:= LoadTX(txbuffer)
 		// Handle connections in a new goroutine.
-		go nd.handleTX(*tx)
+		if !reflect.DeepEqual(getTxFromHash(tx.Hash),tx){
+			go nd.handleTX(*tx)
+		}
 	}
 }

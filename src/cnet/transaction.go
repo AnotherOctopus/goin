@@ -176,7 +176,9 @@ func getTxFromHash(hash [constants.HASHSIZE] byte)(Transaction) {
 	handle := sess.DB("Goin").C("Transactions")
 	TXQuery := handle.Find(bson.M{"hash":hash})
 	err = TXQuery.One(&retTX)
-	checkerror(err)
+	if err != nil {
+		return Transaction{}
+	}
 	return  retTX
 }
 
