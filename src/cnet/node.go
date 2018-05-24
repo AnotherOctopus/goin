@@ -10,12 +10,15 @@ import (
 	"constants"
 	"txheap"
 	"container/heap"
+	"time"
 )
 
 type Node struct {
 	peers   []string // The nodes this node gossips to
 	Wallets []*wallet.Wallet // The wallets this node is using
+
 	mineQ   * txheap.TxHeap
+	chainHeads []Block
 	isMiner bool // Whether this node should act as a miner
 }
 
@@ -74,8 +77,52 @@ func (nd *Node) handleTX(tx Transaction) {
 	}
 }
 
+func (nd * Node) BlListener(){
+	tomine := make([][constants.HASHSIZE]byte,0)
+	for nd.mineQ.Len() > 0 {
+		tx := heap.Pop(nd.mineQ)
+		tomine = append(tomine,tx.(Transaction).Hash)
+	}
+	go nd.Mine(tomine)
+}
+
+func (nd * Node) MostTrustedBlock()(Block){
+	var mostTrusted Block
+	mostTrusted.blockchainlength = 0
+	for _,bl := range nd.chainHeads {
+		if bl.blockchainlength > mostTrusted.blockchainlength{
+			mostTrusted = bl
+		}
+	}
+	return mostTrusted
+}
+func (nd * Node) Mine (txs [][constants.HASHSIZE]byte) (*Block){
+	blk := new(Block)
+	prevBlock := nd.MostTrustedBlock()
+	blk.blockchainlength = prevBlock.blockchainlength + 1
+	blk.Header.PrevBlockHash = prevBlock.Hash
+	blk.Header.Target = prevBlock.Header.Target
+	blk.Header.TransHash = Merkleify(txs)
+	blk.transCnt = uint32(len(txs))
+	blk.Txs = txs
+
+	totalTxSize := 0
+	for _, tx := range blk.Txs {
+		txSize:= len(tx)
+		totalTxSize += txSize
+	}
+
+	totalTxSize += blk.HeaderSize()
+	blk.blocksize = uint64(totalTxSize)
+
+	blk.Header.Noncetry = mine(nd.Wallets[0],*blk)
+	blk.Header.Tstamp = uint64(time.Now().Unix())
+	blk.SetHash(blk.Header.Noncetry)
+	return blk
+}
+
 // Listener function for the transactions
-func (nd *Node) TxListener() {
+func (nd * Node) TxListener() {
 	// Listen for incoming connections.
 	l, err := net.Listen(constants.CONN_TYPE, constants.NETWORK_INT+":"+constants.TRANSRXPORT)
 	if err != nil {

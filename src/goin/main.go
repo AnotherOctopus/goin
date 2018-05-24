@@ -62,6 +62,7 @@ func main(){
 	peerips := []string{"127.0.0.1"}
 	nd := cnet.New(peerips)
 	go nd.TxListener()
+	go nd.BlListener()
 	fmt.Println("Listening for Transactions...")
 	fmt.Println("Launching Goin CLI! ")
 	done := false

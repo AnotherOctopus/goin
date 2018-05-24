@@ -123,10 +123,10 @@ func LoadFTX(filename string)(* Transaction){
 }
 
 //Calculates the merkle root of a list of transactions
-func Merkleify(txs [] Transaction)([]byte){
+func Merkleify(txs [] [constants.HASHSIZE]byte)([]byte){
 	hashlist := make([][]byte,len(txs))
 	for i, tx := range txs {
-		hashlist[i] = tx.Hash[:]
+		hashlist[i] = tx[:]
 	}
 	for len(hashlist) > 1{
 		parseIdx := 0

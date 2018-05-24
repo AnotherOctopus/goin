@@ -18,6 +18,7 @@ import (
 
 type Block struct{
 	blocksize uint64 // How many bytes are in a block
+	blockchainlength uint64
 	Header struct{
 		PrevBlockHash [constants.HASHSIZE]byte // The hash of the previous block
 		TransHash []byte // The Merkle root of all the transactions
@@ -38,7 +39,8 @@ func (bl Block) Dump() (int, []byte){
 	binary.LittleEndian.PutUint32(bBlock[16:20], bl.Header.Target)
 	binary.LittleEndian.PutUint32(bBlock[20:24], bl.Header.Noncetry)
 	binary.LittleEndian.PutUint32(bBlock[24:28], bl.transCnt)
-	indx := 28
+	binary.LittleEndian.PutUint64(bBlock[28:36],bl.blocklength)
+	indx := 36
 	for _,tx := range bl.Txs{
 		 	copy(bBlock[indx:indx+len(tx)],tx[:])
 		 	indx += len(tx)
@@ -85,6 +87,7 @@ func CreateGenesisBlock(creator * wallet.Wallet)(bl Block){
 	bl.Header.Tstamp = uint64(100)//time.Now().Unix())
 	bl.Header.Target = 243
 	bl.Header.Noncetry = 0
+	bl.blocklength = 0
 
 	var tx Transaction
 	tx.Meta.TimePrepared = int64(100)//time.Now().Unix()
@@ -109,8 +112,7 @@ func CreateGenesisBlock(creator * wallet.Wallet)(bl Block){
 	}
 
 	totalTxSize += bl.HeaderSize()
-	fulltxs := make ([]Transaction,1)
-	fulltxs[0] = getTxFromHash(tx.Hash)
+	fulltxs := [][constants.HASHSIZE] byte{tx.Hash}
 	bl.Header.TransHash = Merkleify(fulltxs)
 	bl.blocksize = uint64(totalTxSize)
 	bl.transCnt = uint32(len(bl.Txs))
