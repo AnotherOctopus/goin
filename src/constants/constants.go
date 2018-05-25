@@ -3,6 +3,7 @@ package constants
 
 const (
 	MAXTRANSNETSIZE = 10000 // Maximum size of a serialized transaction
+	MAXBLKNETSIZE = 100000 // Maximum size of a serialized transaction
 	TRANSRXPORT    = "1943" // Port that transactions are recievd from
 	BLOCKRXPORT    = "1918" // Port that blocks are recived on
 	CONN_TYPE      = "tcp" // We use tcp

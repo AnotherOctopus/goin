@@ -31,6 +31,23 @@ type Block struct{
 	Txs [][constants.HASHSIZE]byte // The actual transactions
 }
 
+func LoadBlk( b []byte) (block Block){
+ 	block.blocksize = binary.LittleEndian.Uint64(b[0:8])
+	block.Header.Tstamp = binary.LittleEndian.Uint64(b[8:16])
+	block.Header.Target = binary.LittleEndian.Uint32(b[16:20])
+	block.Header.Noncetry = binary.LittleEndian.Uint32(b[20:24])
+	block.transCnt = binary.LittleEndian.Uint32(b[24:28])
+	block.blockchainlength = binary.LittleEndian.Uint64(b[28:36])
+	indx := 36
+	var hashbuff [constants.HASHSIZE] byte
+	block.Txs = make([][constants.HASHSIZE]byte,0)
+	for indx < int(block.blocksize) {
+		copy(hashbuff[:],b[indx:indx+constants.HASHSIZE])
+		block.Txs = append(block.Txs,hashbuff)
+		indx += constants.HASHSIZE
+	}
+	return
+}
 // Serializes the block
 func (bl Block) Dump() (int, []byte){
 	bBlock := make([]byte,bl.blocksize)
@@ -39,7 +56,7 @@ func (bl Block) Dump() (int, []byte){
 	binary.LittleEndian.PutUint32(bBlock[16:20], bl.Header.Target)
 	binary.LittleEndian.PutUint32(bBlock[20:24], bl.Header.Noncetry)
 	binary.LittleEndian.PutUint32(bBlock[24:28], bl.transCnt)
-	binary.LittleEndian.PutUint64(bBlock[28:36],bl.blocklength)
+	binary.LittleEndian.PutUint64(bBlock[28:36],bl.blockchainlength)
 	indx := 36
 	for _,tx := range bl.Txs{
 		 	copy(bBlock[indx:indx+len(tx)],tx[:])
@@ -87,7 +104,7 @@ func CreateGenesisBlock(creator * wallet.Wallet)(bl Block){
 	bl.Header.Tstamp = uint64(100)//time.Now().Unix())
 	bl.Header.Target = 243
 	bl.Header.Noncetry = 0
-	bl.blocklength = 0
+	bl.blockchainlength = 0
 
 	var tx Transaction
 	tx.Meta.TimePrepared = int64(100)//time.Now().Unix()
@@ -162,6 +179,36 @@ func (bl * Block) SetHash(nonce uint32) {
 	bl.Hash = bl.HashBlock()
 	return
 }
+
+// Returns the transaction object of an associated hash
+func getBlkFromHash(hash [constants.HASHSIZE] byte)(Block) {
+	var retBlk Block
+	sess, err := mgo.Dial("localhost")
+	checkerror(err)
+	defer sess.Close()
+	handle := sess.DB("Goin").C("Blocks")
+	BlkQuery := handle.Find(bson.M{"hash":hash})
+	err = BlkQuery.One(&retBlk)
+	if err != nil {
+		return Block{}
+	}
+	return  retBlk
+}
+
+func verifyBlk(blk Block)(err error){
+
+	return nil
+}
+
+func SaveBlk(blk Block)(err error){
+	sess, err := mgo.Dial("localhost")
+	checkerror(err)
+	defer sess.Close()
+	handle := sess.DB("Goin").C("Blocks")
+	handle.Insert(blk)
+	return nil
+}
+
 // Runs the check nonce over and over
 func mine(w * wallet.Wallet,bl Block)(validNonce uint32){
 	for i := 0; i  < math.MaxInt64; i += 1{

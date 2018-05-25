@@ -8,16 +8,17 @@ import (
 	"os"
 	"reflect"
 	"constants"
-	"txheap"
 	"container/heap"
 	"time"
+	"math"
+	"log"
 )
 
 type Node struct {
 	peers   []string // The nodes this node gossips to
 	Wallets []*wallet.Wallet // The wallets this node is using
 
-	mineQ   * txheap.TxHeap
+	mineQ   * TxHeap
 	chainHeads []Block
 	isMiner bool // Whether this node should act as a miner
 }
@@ -31,9 +32,22 @@ func New(peerips []string)(nd Node){
 		nd.peers[i] = p + ":" + constants.TRANSRXPORT
 	}
 	nd.Wallets = make([]*wallet.Wallet,0)
-	nd.mineQ = new(txheap.TxHeap)
+	nd.mineQ = new(TxHeap)
 	heap.Init(nd.mineQ)
 	return
+}
+
+func (nd Node) SendBlk (blk Block)(reterr error){
+	for _,peer := range nd.peers{
+		conn, err := net.Dial("tcp", peer)
+		if err != nil {
+			return err
+		}
+		_, blkData := blk.Dump()
+		conn.Write(blkData)
+		conn.Close()
+	}
+	return nil
 }
 
 //Send a transaction from this node
@@ -77,13 +91,84 @@ func (nd *Node) handleTX(tx Transaction) {
 	}
 }
 
-func (nd * Node) BlListener(){
-	tomine := make([][constants.HASHSIZE]byte,0)
+func (nd * Node) StartMining(kill chan bool) {
+	txs := make([][constants.HASHSIZE]byte,0)
 	for nd.mineQ.Len() > 0 {
 		tx := heap.Pop(nd.mineQ)
-		tomine = append(tomine,tx.(Transaction).Hash)
+		txs = append(txs,tx.(Transaction).Hash)
 	}
-	go nd.Mine(tomine)
+	if len(txs) > 0{
+		blk := new(Block)
+		prevBlock := nd.MostTrustedBlock()
+		blk.blockchainlength = prevBlock.blockchainlength + 1
+		blk.Header.PrevBlockHash = prevBlock.Hash
+		blk.Header.Target = prevBlock.Header.Target
+		blk.Header.TransHash = Merkleify(txs)
+		blk.transCnt = uint32(len(txs))
+		blk.Txs = txs
+
+		totalTxSize := 0
+		for _, tx := range blk.Txs {
+			txSize:= len(tx)
+			totalTxSize += txSize
+		}
+
+		totalTxSize += blk.HeaderSize()
+		blk.blocksize = uint64(totalTxSize)
+
+		for i := 0; i  < math.MaxInt64; i += 1{
+			log.Println("Trying ",i)
+			select {
+				case <- kill:
+					return
+				default:
+					if blk.CheckNonce(uint32(i)){
+						log.Println(i,"Success!")
+						blk.Header.Noncetry = uint32(i)
+						i = math.MaxInt64
+					}
+			}
+		}
+
+		blk.Header.Tstamp = uint64(time.Now().Unix())
+		blk.SetHash(blk.Header.Noncetry)
+		SaveBlk(*blk)
+		nd.SendBlk(*blk)
+	}
+}
+func (nd * Node) BlListener(){
+	// Listen for incoming connections.
+	l, err := net.Listen(constants.CONN_TYPE, constants.NETWORK_INT+":"+constants.BLOCKRXPORT)
+	if err != nil {
+		fmt.Println("Error listening:", err.Error())
+		os.Exit(1)
+	}
+	// Close the listener when the application closes.
+	defer l.Close()
+	kill := make(chan bool)
+	nd.StartMining(kill)
+	fmt.Println("Blocks listening on " + constants.NETWORK_INT + ":" + constants.BLOCKRXPORT)
+	blkbuffer := make([]byte,constants.MAXBLKNETSIZE)
+	for {
+		// Listen for an incoming connection.
+		conn, err := l.Accept()
+		if err != nil {
+			fmt.Println("Error accepting: ", err.Error())
+			os.Exit(1)
+		}
+		conn.Read(blkbuffer)
+		blk:= LoadBlk(blkbuffer)
+		if !reflect.DeepEqual(blk,getBlkFromHash(blk.Hash)){
+			verified := verifyBlk(blk)
+			if verified == nil {
+				// Save the Block
+				SaveBlk(blk)
+			}else {
+				fmt.Println("Invalid Block Recieved")
+				fmt.Println(verified)
+			}
+		}
+	}
 }
 
 func (nd * Node) MostTrustedBlock()(Block){
@@ -96,30 +181,6 @@ func (nd * Node) MostTrustedBlock()(Block){
 	}
 	return mostTrusted
 }
-func (nd * Node) Mine (txs [][constants.HASHSIZE]byte) (*Block){
-	blk := new(Block)
-	prevBlock := nd.MostTrustedBlock()
-	blk.blockchainlength = prevBlock.blockchainlength + 1
-	blk.Header.PrevBlockHash = prevBlock.Hash
-	blk.Header.Target = prevBlock.Header.Target
-	blk.Header.TransHash = Merkleify(txs)
-	blk.transCnt = uint32(len(txs))
-	blk.Txs = txs
-
-	totalTxSize := 0
-	for _, tx := range blk.Txs {
-		txSize:= len(tx)
-		totalTxSize += txSize
-	}
-
-	totalTxSize += blk.HeaderSize()
-	blk.blocksize = uint64(totalTxSize)
-
-	blk.Header.Noncetry = mine(nd.Wallets[0],*blk)
-	blk.Header.Tstamp = uint64(time.Now().Unix())
-	blk.SetHash(blk.Header.Noncetry)
-	return blk
-}
 
 // Listener function for the transactions
 func (nd * Node) TxListener() {
@@ -131,7 +192,7 @@ func (nd * Node) TxListener() {
 	}
 	// Close the listener when the application closes.
 	defer l.Close()
-	fmt.Println("Listening on " + constants.NETWORK_INT + ":" + constants.TRANSRXPORT)
+	fmt.Println("Transaction listening on " + constants.NETWORK_INT + ":" + constants.TRANSRXPORT)
 	txbuffer := make([]byte,constants.MAXTRANSNETSIZE)
 	for {
 		// Listen for an incoming connection.

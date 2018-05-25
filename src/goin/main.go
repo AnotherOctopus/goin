@@ -49,6 +49,7 @@ func test(){
 	txtosend.Outputs[0].Signature = txtosend.Outputs[0].GenSignature(w.Keys[addidx])
 	txtosend.SetHash()
 
+	cnet.SaveTx(*txtosend)
 	err = nd.SendTx(*txtosend)
 	CheckError(err)
 	fmt.Println("Sent")

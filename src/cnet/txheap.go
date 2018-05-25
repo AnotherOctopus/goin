@@ -1,8 +1,7 @@
-package txheap
+package cnet
 
-import "cnet"
 
-type TxHeap [] cnet.Transaction
+type TxHeap [] Transaction
 
 func (txh TxHeap) Len() int {
 	return len(txh)
@@ -17,7 +16,7 @@ func (txh TxHeap) Swap (i,j int){
 }
 
 func (txh * TxHeap) Push( x interface{}){
-	*txh = append(*txh,x.(cnet.Transaction))
+	*txh = append(*txh,x.(Transaction))
 }
 
 
