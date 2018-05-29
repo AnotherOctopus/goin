@@ -1,8 +1,17 @@
 package cnet
 
+import "constants"
 
 type TxHeap [] Transaction
 
+func (txh TxHeap) Contains(hash [constants.HASHSIZE]byte) bool{
+	for _, tx := range txh{
+		if tx.Hash == hash {
+			return true
+		}
+	}
+	return false
+}
 func (txh TxHeap) Len() int {
 	return len(txh)
 }

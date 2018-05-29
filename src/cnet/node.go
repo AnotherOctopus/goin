@@ -91,12 +91,7 @@ func (nd *Node) handleTX(tx Transaction) {
 	}
 }
 
-func (nd * Node) StartMining(kill chan bool) {
-	txs := make([][constants.HASHSIZE]byte,0)
-	for nd.mineQ.Len() > 0 {
-		tx := heap.Pop(nd.mineQ)
-		txs = append(txs,tx.(Transaction).Hash)
-	}
+func (nd * Node) StartMining(kill chan bool,txs [][constants.HASHSIZE]byte) {
 	if len(txs) > 0{
 		blk := new(Block)
 		prevBlock := nd.MostTrustedBlock()
@@ -146,7 +141,12 @@ func (nd * Node) BlListener(){
 	// Close the listener when the application closes.
 	defer l.Close()
 	kill := make(chan bool)
-	nd.StartMining(kill)
+	miningtxs := make([][constants.HASHSIZE]byte,0)
+	for nd.mineQ.Len() > 0 {
+		tx := heap.Pop(nd.mineQ)
+		miningtxs = append(miningtxs,tx.(Transaction).Hash)
+	}
+	nd.StartMining(kill,miningtxs)
 	fmt.Println("Blocks listening on " + constants.NETWORK_INT + ":" + constants.BLOCKRXPORT)
 	blkbuffer := make([]byte,constants.MAXBLKNETSIZE)
 	for {
@@ -162,8 +162,15 @@ func (nd * Node) BlListener(){
 			verified := verifyBlk(blk)
 			if verified == nil {
 				// Save the Block
+				for _, miningtx := range miningtxs {
+					for _, blktx := range blk.Txs {
+						isKnown := reflect.DeepEqual(Transaction{},getTxFromHash(blktx))
+						isMining := miningtx == blktx
+						inToMine := nd.mineQ.Contains(blktx)
+					}
+				}
 				SaveBlk(blk)
-			}else {
+			} else {
 				fmt.Println("Invalid Block Recieved")
 				fmt.Println(verified)
 			}
