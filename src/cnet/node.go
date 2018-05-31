@@ -158,6 +158,8 @@ func (nd * Node) BlListener(){
 		}
 		conn.Read(blkbuffer)
 		blk:= LoadBlk(blkbuffer)
+		wasmined := make([][constants.HASHSIZE]byte,0)
+		removefromheap := make([][constants.HASHSIZE]byte,0)
 		if !reflect.DeepEqual(blk,getBlkFromHash(blk.Hash)){
 			verified := verifyBlk(blk)
 			if verified == nil {
@@ -167,7 +169,42 @@ func (nd * Node) BlListener(){
 						isKnown := reflect.DeepEqual(Transaction{},getTxFromHash(blktx))
 						isMining := miningtx == blktx
 						inToMine := nd.mineQ.Contains(blktx)
+						if isKnown{
+							if isMining {
+								wasmined = append(wasmined, blktx)
+							} else {
+								if inToMine{
+									removefromheap = append(removefromheap,blktx)
+								}
+							}
+						} else {
+							SaveTx(requestTxn(blktx))
+						}
 					}
+				}
+				minebuffer := new( TxHeap)
+				var isin bool
+				for nd.mineQ.Len() > 0{
+					temptx := heap.Pop(nd.mineQ)
+					isin = true
+					for _, toremove := range removefromheap {
+						if reflect.DeepEqual(temptx,toremove){
+							temptx = false
+						}
+					}
+					if isin {
+						heap.Push(minebuffer,temptx)
+					}
+				}
+				nd.mineQ = minebuffer
+				if len(wasmined) > 0 {
+					kill <- true
+					miningtxs = make([][constants.HASHSIZE]byte,0)
+					for nd.mineQ.Len() > 0 {
+						tx := heap.Pop(nd.mineQ)
+						miningtxs = append(miningtxs,tx.(Transaction).Hash)
+					}
+					nd.StartMining(kill,miningtxs)
 				}
 				SaveBlk(blk)
 			} else {
@@ -176,6 +213,10 @@ func (nd * Node) BlListener(){
 			}
 		}
 	}
+}
+
+func requestTxn(tx [constants.HASHSIZE]byte)(Transaction){
+	return Transaction{}
 }
 
 func (nd * Node) MostTrustedBlock()(Block){
@@ -216,3 +257,4 @@ func (nd * Node) TxListener() {
 		}
 	}
 }
+
