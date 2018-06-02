@@ -18,7 +18,7 @@ type Node struct {
 	peers   []string // The nodes this node gossips to
 	Wallets []*wallet.Wallet // The wallets this node is using
 
-	mineQ   * TxHeap
+	mineQ   * TxHeap //queue of transactions to mine
 	chainHeads []Block
 	isMiner bool // Whether this node should act as a miner
 }
@@ -91,6 +91,7 @@ func (nd *Node) handleTX(tx Transaction) {
 	}
 }
 
+//Starts mining a list of transactions. When you send a true to the kill channel, it forcefully stops the goroutine
 func (nd * Node) StartMining(kill chan bool,txs [][constants.HASHSIZE]byte) {
 	if len(txs) > 0{
 		blk := new(Block)
@@ -131,6 +132,7 @@ func (nd * Node) StartMining(kill chan bool,txs [][constants.HASHSIZE]byte) {
 		nd.SendBlk(*blk)
 	}
 }
+//Function that handles listening for incoming blocks. Handles starting and killing mining
 func (nd * Node) BlListener(){
 	// Listen for incoming connections.
 	l, err := net.Listen(constants.CONN_TYPE, constants.NETWORK_INT+":"+constants.BLOCKRXPORT)
@@ -140,14 +142,20 @@ func (nd * Node) BlListener(){
 	}
 	// Close the listener when the application closes.
 	defer l.Close()
+	//Create channel to kill mining
 	kill := make(chan bool)
+	//Create slice of transactions to mine
 	miningtxs := make([][constants.HASHSIZE]byte,0)
+	//Take whole tomine stack and load it in a list to mine
 	for nd.mineQ.Len() > 0 {
 		tx := heap.Pop(nd.mineQ)
 		miningtxs = append(miningtxs,tx.(Transaction).Hash)
 	}
-	nd.StartMining(kill,miningtxs)
+	//Start mining the list
+	go nd.StartMining(kill,miningtxs)
 	fmt.Println("Blocks listening on " + constants.NETWORK_INT + ":" + constants.BLOCKRXPORT)
+
+	//This will be the buffer to prepare new mining routines
 	blkbuffer := make([]byte,constants.MAXBLKNETSIZE)
 	for {
 		// Listen for an incoming connection.
@@ -157,55 +165,70 @@ func (nd * Node) BlListener(){
 			os.Exit(1)
 		}
 		conn.Read(blkbuffer)
+		//Loading received block
 		blk:= LoadBlk(blkbuffer)
+		//List of transactions that have already been mined
 		wasmined := make([][constants.HASHSIZE]byte,0)
+		//List of transactions that need to be removed from the heap
 		removefromheap := make([][constants.HASHSIZE]byte,0)
+		//If we have seen this block before we will ignore it
 		if !reflect.DeepEqual(blk,getBlkFromHash(blk.Hash)){
+			//Try to verify it, ignore otherwise
 			verified := verifyBlk(blk)
 			if verified == nil {
-				// Save the Block
-				for _, miningtx := range miningtxs {
-					for _, blktx := range blk.Txs {
-						isKnown := reflect.DeepEqual(Transaction{},getTxFromHash(blktx))
-						isMining := miningtx == blktx
-						inToMine := nd.mineQ.Contains(blktx)
-						if isKnown{
+				for _, blktx := range blk.Txs {
+					//We know of this transaction
+					isKnown := reflect.DeepEqual(Transaction{},getTxFromHash(blktx))
+					//We are prepped to mine this transaction
+					inToMine := nd.mineQ.Contains(blktx)
+					if isKnown{
+						for _, miningtx := range miningtxs {
+							isMining := miningtx == blktx
 							if isMining {
 								wasmined = append(wasmined, blktx)
-							} else {
-								if inToMine{
-									removefromheap = append(removefromheap,blktx)
-								}
+								break
 							}
-						} else {
-							SaveTx(requestTxn(blktx))
 						}
+					}else {
+						SaveTx(requestTxn(blktx))
+					}
+					if inToMine {
+						removefromheap = append(removefromheap,blktx)
 					}
 				}
-				minebuffer := new( TxHeap)
+				//This will become the new queue of transactions to mine
+				minebuffer := new(TxHeap)
 				var isin bool
 				for nd.mineQ.Len() > 0{
+					//Pop off all the items in the current queue
 					temptx := heap.Pop(nd.mineQ)
+					//if we need to remove it from te heap
 					isin = true
 					for _, toremove := range removefromheap {
 						if reflect.DeepEqual(temptx,toremove){
-							temptx = false
+							isin = false
+							break
 						}
 					}
+					//Push it onto the new queue
 					if isin {
 						heap.Push(minebuffer,temptx)
 					}
 				}
+				// Set the new queue
 				nd.mineQ = minebuffer
+				//If we are currently mining something that has been mined already
 				if len(wasmined) > 0 {
 					kill <- true
+					//start mining again
 					miningtxs = make([][constants.HASHSIZE]byte,0)
 					for nd.mineQ.Len() > 0 {
 						tx := heap.Pop(nd.mineQ)
 						miningtxs = append(miningtxs,tx.(Transaction).Hash)
 					}
-					nd.StartMining(kill,miningtxs)
+					go nd.StartMining(kill,miningtxs)
 				}
+				// Save the Block
 				SaveBlk(blk)
 			} else {
 				fmt.Println("Invalid Block Recieved")
