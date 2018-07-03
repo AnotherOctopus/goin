@@ -196,7 +196,6 @@ func getBlkFromHash(hash [constants.HASHSIZE] byte)(Block) {
 }
 
 func verifyBlk(blk Block)(err error){
-
 	return nil
 }
 
