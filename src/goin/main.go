@@ -1,19 +1,7 @@
 package main
 
 import (
-	"wallet"
-	"fmt"
-	"bufio"
-	"os"
-	"strconv"
-	"strings"
 	"cnet"
-	"io/ioutil"
-	"encoding/hex"
-	"time"
-	"encoding/json"
-	"encoding/base64"
-	"constants"
 )
 func main(){
 	//test()
@@ -22,4 +10,5 @@ func main(){
 	go nd.TxListener()
 	go nd.BlListener()
 	go nd.CmdListener()
+	<-make(chan bool)
 }

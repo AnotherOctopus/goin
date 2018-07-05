@@ -12,7 +12,6 @@ import (
 	"time"
 	"math"
 	"log"
-	"bufio"
 	"strings"
 	"strconv"
 	"encoding/hex"
@@ -150,10 +149,7 @@ func (nd * Node) StartMining(kill chan bool,txs [][constants.HASHSIZE]byte) {
 func (nd * Node) BlListener(){
 	// Listen for incoming connections.
 	l, err := net.Listen(constants.CONN_TYPE, constants.NETWORK_INT+":"+constants.BLOCKRXPORT)
-	if err != nil {
-		fmt.Println("Error listening:", err.Error())
-		os.Exit(1)
-	}
+	tcpError(err)
 	// Close the listener when the application closes.
 	defer l.Close()
 	//Create channel to kill mining
@@ -174,10 +170,7 @@ func (nd * Node) BlListener(){
 	for {
 		// Listen for an incoming connection.
 		conn, err := l.Accept()
-		if err != nil {
-			fmt.Println("Error accepting: ", err.Error())
-			os.Exit(1)
-		}
+		tcpError(err)
 		conn.Read(blkbuffer)
 		//Loading received block
 		blk:= LoadBlk(blkbuffer)
@@ -256,6 +249,12 @@ func requestTxn(tx [constants.HASHSIZE]byte)(Transaction){
 	return Transaction{}
 }
 
+func tcpError(err error){
+	if err != nil {
+		fmt.Println("Error listening:", err.Error())
+		os.Exit(1)
+	}
+}
 func (nd * Node) MostTrustedBlock()(Block){
 	var mostTrusted Block
 	mostTrusted.blockchainlength = 0
@@ -271,10 +270,7 @@ func (nd * Node) MostTrustedBlock()(Block){
 func (nd * Node) TxListener() {
 	// Listen for incoming connections.
 	l, err := net.Listen(constants.CONN_TYPE, constants.NETWORK_INT+":"+constants.TRANSRXPORT)
-	if err != nil {
-		fmt.Println("Error listening:", err.Error())
-		os.Exit(1)
-	}
+	tcpError(err)
 	// Close the listener when the application closes.
 	defer l.Close()
 	fmt.Println("Transaction listening on " + constants.NETWORK_INT + ":" + constants.TRANSRXPORT)
@@ -282,10 +278,7 @@ func (nd * Node) TxListener() {
 	for {
 		// Listen for an incoming connection.
 		conn, err := l.Accept()
-		if err != nil {
-			fmt.Println("Error accepting: ", err.Error())
-			os.Exit(1)
-		}
+		tcpError(err)
 		conn.Read(txbuffer)
 		tx:= LoadTX(txbuffer)
 		// Handle connections in a new goroutine.
@@ -296,20 +289,25 @@ func (nd * Node) TxListener() {
 }
 
 func (nd * Node)CmdListener() {
-	fmt.Println("Listening for Transactions...")
-	fmt.Println("Launching Goin CLI! ")
+	l, err := net.Listen(constants.CONN_TYPE, constants.NETWORK_INT+":"+constants.CMDRXPORT)
+	tcpError(err)
+	// Close the listener when the application closes.
+	defer l.Close()
+	fmt.Println("Transaction listening on " + constants.NETWORK_INT + ":" + constants.CMDRXPORT)
+	txbuffer := make([]byte,constants.MAXTRANSNETSIZE)
+	fmt.Println("Listening for Commands...")
 	done := false
 	for !done{
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Println("Enter Command: ")
-		fmt.Println("[1] Send Transaction From File")
-		fmt.Println("[2] Manually Prepare Transaction")
-		fmt.Println("[3] View Current Balence")
-		fmt.Println("[4] Make A New Wallet")
-		fmt.Println("[5] Load A Wallet")
-		fmt.Println("[10] Exit")
-		text, _ := reader.ReadString('\n')
-		text = strings.TrimSpace(text)
+		/*[1] Send Transaction From File")
+		  [2] Manually Prepare Transaction")
+		  [3] View Current Balence")
+		  [4] Make A New Wallet")
+		  [5] Load A Wallet")
+		  [10] Exit")*/
+		conn, err := l.Accept()
+		tcpError(err)
+		conn.Read(txbuffer)
+		text := strings.TrimSpace(string(txbuffer))
 		i,err := strconv.ParseInt(text,10,8)
 		if err != nil {
 			fmt.Println("INPUT IS NOT A NUMBER")
@@ -326,8 +324,10 @@ func (nd * Node)CmdListener() {
 			for i := range nd.Wallets {
 				fmt.Println(fmt.Sprintf("[%v]",i))
 			}
-			text, _ := reader.ReadString('\n')
-			text = strings.TrimSpace(text)
+			conn, err := l.Accept()
+			tcpError(err)
+			conn.Read(txbuffer)
+			text := strings.TrimSpace(string(txbuffer))
 			windex,err := strconv.ParseInt(text,10,8)
 			if err != nil {
 				fmt.Println("INPUT IS NOT A NUMBER")
@@ -339,8 +339,10 @@ func (nd * Node)CmdListener() {
 			for i,addr := range w.Address {
 				fmt.Println(fmt.Sprintf("[%v]: %v",i,hex.EncodeToString(addr[:])))
 			}
-			text, _ = reader.ReadString('\n')
-			text = strings.TrimSpace(text)
+			conn, err = l.Accept()
+			tcpError(err)
+			conn.Read(txbuffer)
+			text = strings.TrimSpace(string(txbuffer))
 			addidx,err := strconv.ParseInt(text,10,8)
 			if err != nil {
 				fmt.Println("INPUT IS NOT A NUMBER")
@@ -350,8 +352,10 @@ func (nd * Node)CmdListener() {
 			addrtouse := w.Address[addidx]
 			fmt.Println("Using ",hex.EncodeToString(addrtouse[:]))
 			fmt.Println("Select Filename of Transaction to send")
-			filename, _ := reader.ReadString('\n')
-			filename = strings.TrimSpace(filename)
+			conn, err = l.Accept()
+			tcpError(err)
+			conn.Read(txbuffer)
+			filename := strings.TrimSpace(string(txbuffer))
 
 			txtosend := LoadFTX(filename)
 			txtosend.Meta.Address = addrtouse
@@ -367,23 +371,30 @@ func (nd * Node)CmdListener() {
 			savetx.Outputs = make([]Output,0)
 			savetx.Inputs = make([]Input,0)
 			fmt.Println("Select Filename of Transaction to prepare")
-			filename, _ := reader.ReadString('\n')
-			filename = strings.TrimSpace(filename)
+			conn, err = l.Accept()
+			tcpError(err)
+			conn.Read(txbuffer)
+			filename := strings.TrimSpace(string(txbuffer))
 			var inp byte
 			for inp != 'd'{
 				fmt.Println("Select An Option")
 				fmt.Println("[i] Add Input")
 				fmt.Println("[o] Add Output")
 				fmt.Println("[d] Finish and Save")
-				rawinp, _ := reader.ReadString('\n')
+				conn, err = l.Accept()
+				tcpError(err)
+				conn.Read(txbuffer)
+				rawinp := strings.TrimSpace(string(txbuffer))
 				inp = rawinp[0]
 				switch inp {
 				case 'i':
 					var newInput Input
 					var hashbuffer [constants.HASHSIZE]byte
 					fmt.Println("Hash for Previous Transaction for input?")
-					prev, _ := reader.ReadString('\n')
-					prev = strings.TrimSpace(prev)
+					conn, err = l.Accept()
+					tcpError(err)
+					conn.Read(txbuffer)
+					prev := strings.TrimSpace(string(txbuffer))
 					CheckError(err)
 					newHash, err := base64.StdEncoding.DecodeString(prev)
 					if err != nil {
@@ -391,8 +402,10 @@ func (nd * Node)CmdListener() {
 						continue
 					}
 					fmt.Println("Index for Previous Transaction for input?")
-					prev, _ = reader.ReadString('\n')
-					prev = strings.TrimSpace(prev)
+					conn, err = l.Accept()
+					tcpError(err)
+					conn.Read(txbuffer)
+					prev = strings.TrimSpace(string(txbuffer))
 					CheckError(err)
 					transidx,err := strconv.ParseInt(prev,10,8)
 					if err != nil {
@@ -409,8 +422,10 @@ func (nd * Node)CmdListener() {
 					var newOutput Output
 					var hashbuffer [constants.ADDRESSSIZE]byte
 					fmt.Println("Hash for Address for output?")
-					out, _ := reader.ReadString('\n')
-					out = strings.TrimSpace(out)
+					conn, err = l.Accept()
+					tcpError(err)
+					conn.Read(txbuffer)
+					out := strings.TrimSpace(string(txbuffer))
 					CheckError(err)
 					newHash, err := base64.StdEncoding.DecodeString(out)
 					if err != nil {
@@ -418,8 +433,10 @@ func (nd * Node)CmdListener() {
 						continue
 					}
 					fmt.Println("Amount to send?")
-					out, _ = reader.ReadString('\n')
-					out = strings.TrimSpace(out)
+					conn, err = l.Accept()
+					tcpError(err)
+					conn.Read(txbuffer)
+					out = strings.TrimSpace(string(txbuffer))
 					CheckError(err)
 					amount,err := strconv.ParseInt(out,10,8)
 					if err != nil {
@@ -448,15 +465,19 @@ func (nd * Node)CmdListener() {
 		case 4:
 			w := wallet.NewWallet(3)
 			fmt.Println("Select Filename of where to save wallet")
-			filename, _ := reader.ReadString('\n')
-			filename = strings.TrimSpace(filename)
+			conn, err = l.Accept()
+			tcpError(err)
+			conn.Read(txbuffer)
+			filename := strings.TrimSpace(string(txbuffer))
 			ioutil.WriteFile(filename,w.Dump(),0644)
 			nd.Wallets = append(nd.Wallets,w)
 
 		case 5:
 			fmt.Println("Select Filename of wallet")
-			filename, _ := reader.ReadString('\n')
-			filename = strings.TrimSpace(filename)
+			conn, err = l.Accept()
+			tcpError(err)
+			conn.Read(txbuffer)
+			filename := strings.TrimSpace(string(txbuffer))
 			rawdata,err := ioutil.ReadFile(filename)
 			wallet.CheckError(err)
 			nd.Wallets = append(nd.Wallets, wallet.LoadWallet(rawdata))
