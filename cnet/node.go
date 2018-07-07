@@ -7,7 +7,7 @@ import (
 	"net"
 	"os"
 	"reflect"
-	"constants"
+	"github.com/AnotherOctopus/constants"
 	"container/heap"
 	"time"
 	"math"

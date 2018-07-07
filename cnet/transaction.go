@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"constants"
+	"github.com/AnotherOctopus/constants"
 	"crypto/rsa"
 	"encoding/binary"
 	"crypto"

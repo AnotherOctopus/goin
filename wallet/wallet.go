@@ -5,7 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"fmt"
-	"constants"
+	"github.com/AnotherOctopus/constants"
 	"crypto/x509"
 	"bytes"
 	"crypto/sha256"

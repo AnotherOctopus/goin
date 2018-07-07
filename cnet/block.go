@@ -7,7 +7,7 @@ import (
 	"github.com/AnotherOctopus/wallet"
 	"strconv"
 	"encoding/hex"
-	"constants"
+	"github.com/AnotherOctopus/constants"
 	"math/big"
 	"log"
 	"math"
