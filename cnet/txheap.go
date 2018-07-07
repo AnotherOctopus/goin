@@ -1,6 +1,6 @@
 package cnet
 
-import "constants"
+import "github.com/AnotherOctopus/goin/constants"
 
 type TxHeap [] Transaction
 

@@ -2,7 +2,7 @@
 package cnet
 
 import (
-	"wallet"
+	"github.com/AnotherOctopus/wallet"
 	"fmt"
 	"net"
 	"os"

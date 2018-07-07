@@ -16,7 +16,7 @@ import (
 	"gopkg.in/mgo.v2"
 	//"gopkg.in/mgo.v2/bson"
 	"reflect"
-	"wallet"
+	"github.com/AnotherOctopus/wallet"
 	"gopkg.in/mgo.v2/bson"
 )
 

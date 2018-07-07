@@ -4,7 +4,7 @@ package cnet
 import (
 	"encoding/binary"
 	"crypto/sha256"
-	"wallet"
+	"github.com/AnotherOctopus/wallet"
 	"strconv"
 	"encoding/hex"
 	"constants"
