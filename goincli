@@ -1,0 +1,63 @@
+#!/usr/bin/env python
+
+import sys
+import socket
+import time
+CMDPORT=1945
+
+def sendString(toSend):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        # Connect the socket to the port where the server is listening
+        server_address = ('localhost', CMDPORT)
+        sock.connect(server_address) 
+        # Create a TCP/IP socket
+        sock.send(toSend)
+        sock.close()
+        
+        time.sleep(1)
+        
+def sendTx(*args):
+        wallIdx = args[0][0]
+        addressIdx = args[0][1]
+        txTx = args[0][2]
+        sendString("1")
+        sendString(wallIdx)
+        sendString(addressIdx)
+        sendString(txTx)
+
+def prepTx(*args):
+        txFilename = args[0][0]
+        inputs = args[0][1]
+        outputs = args[0][2]
+        sendString("2")
+        sendString(txFilename)
+        sendString(addressIdx)
+        sendString(txTx)
+
+def viewBal(*args):
+        sendString("3")
+
+def makeWal(*args):
+        walFilename = args[0][0]
+        sendString("4")
+        sendString(walFilename)
+
+def loadWal(*args):
+        walFilename = args[0][0]
+        sendString("5")
+        sendString(walFilename)
+
+def done(*args):
+        sendString("10")
+
+if __name__ == "__main__":
+        options = { "1": sendTx,
+                    "2": prepTx,
+                    "3": viewBal,
+                    "4": makeWal,
+                    "5": loadWal,
+                   "10": done
+                  }
+        options[sys.argv[1]](sys.argv[2:])
+       

@@ -18,6 +18,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"io/ioutil"
+	"bytes"
 )
 
 type Node struct {
@@ -307,7 +308,7 @@ func (nd * Node)CmdListener() {
 		conn, err := l.Accept()
 		tcpError(err)
 		conn.Read(txbuffer)
-		text := strings.TrimSpace(string(txbuffer))
+		text := string(bytes.Trim(txbuffer,"\x00"))
 		i,err := strconv.ParseInt(text,10,8)
 		if err != nil {
 			fmt.Println("INPUT IS NOT A NUMBER")
@@ -327,7 +328,7 @@ func (nd * Node)CmdListener() {
 			conn, err := l.Accept()
 			tcpError(err)
 			conn.Read(txbuffer)
-			text := strings.TrimSpace(string(txbuffer))
+			text = string(bytes.Trim(txbuffer,"\x00"))
 			windex,err := strconv.ParseInt(text,10,8)
 			if err != nil {
 				fmt.Println("INPUT IS NOT A NUMBER")
@@ -342,7 +343,7 @@ func (nd * Node)CmdListener() {
 			conn, err = l.Accept()
 			tcpError(err)
 			conn.Read(txbuffer)
-			text = strings.TrimSpace(string(txbuffer))
+			text = string(bytes.Trim(txbuffer,"\x00"))
 			addidx,err := strconv.ParseInt(text,10,8)
 			if err != nil {
 				fmt.Println("INPUT IS NOT A NUMBER")
@@ -355,7 +356,7 @@ func (nd * Node)CmdListener() {
 			conn, err = l.Accept()
 			tcpError(err)
 			conn.Read(txbuffer)
-			filename := strings.TrimSpace(string(txbuffer))
+			filename := string(bytes.Trim(txbuffer,"\x00"))
 
 			txtosend := LoadFTX(filename)
 			txtosend.Meta.Address = addrtouse
@@ -374,7 +375,7 @@ func (nd * Node)CmdListener() {
 			conn, err = l.Accept()
 			tcpError(err)
 			conn.Read(txbuffer)
-			filename := strings.TrimSpace(string(txbuffer))
+			filename := string(bytes.Trim(txbuffer,"\x00"))
 			var inp byte
 			for inp != 'd'{
 				fmt.Println("Select An Option")
@@ -384,7 +385,7 @@ func (nd * Node)CmdListener() {
 				conn, err = l.Accept()
 				tcpError(err)
 				conn.Read(txbuffer)
-				rawinp := strings.TrimSpace(string(txbuffer))
+				rawinp := string(bytes.Trim(txbuffer,"\x00"))
 				inp = rawinp[0]
 				switch inp {
 				case 'i':
@@ -394,7 +395,7 @@ func (nd * Node)CmdListener() {
 					conn, err = l.Accept()
 					tcpError(err)
 					conn.Read(txbuffer)
-					prev := strings.TrimSpace(string(txbuffer))
+					prev := string(bytes.Trim(txbuffer,"\x00"))
 					CheckError(err)
 					newHash, err := base64.StdEncoding.DecodeString(prev)
 					if err != nil {
@@ -405,7 +406,7 @@ func (nd * Node)CmdListener() {
 					conn, err = l.Accept()
 					tcpError(err)
 					conn.Read(txbuffer)
-					prev = strings.TrimSpace(string(txbuffer))
+					prev = string(bytes.Trim(txbuffer,"\x00"))
 					CheckError(err)
 					transidx,err := strconv.ParseInt(prev,10,8)
 					if err != nil {
@@ -464,11 +465,10 @@ func (nd * Node)CmdListener() {
 
 		case 4:
 			w := wallet.NewWallet(3)
-			fmt.Println("Select Filename of where to save wallet")
 			conn, err = l.Accept()
 			tcpError(err)
 			conn.Read(txbuffer)
-			filename := strings.TrimSpace(string(txbuffer))
+			filename := string(bytes.Trim(txbuffer,"\x00"))
 			ioutil.WriteFile(filename,w.Dump(),0644)
 			nd.Wallets = append(nd.Wallets,w)
 
@@ -477,7 +477,7 @@ func (nd * Node)CmdListener() {
 			conn, err = l.Accept()
 			tcpError(err)
 			conn.Read(txbuffer)
-			filename := strings.TrimSpace(string(txbuffer))
+			filename := string(bytes.Trim(txbuffer,"\x00"))
 			rawdata,err := ioutil.ReadFile(filename)
 			wallet.CheckError(err)
 			nd.Wallets = append(nd.Wallets, wallet.LoadWallet(rawdata))
