@@ -4,10 +4,10 @@ package cnet
 import (
 	"encoding/binary"
 	"crypto/sha256"
-	"github.com/AnotherOctopus/wallet"
+	"github.com/AnotherOctopus/goin/wallet"
 	"strconv"
 	"encoding/hex"
-	"github.com/AnotherOctopus/constants"
+    "github.com/AnotherOctopus/goin/constants"
 	"math/big"
 	"log"
 	"math"

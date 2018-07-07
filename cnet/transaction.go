@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"github.com/AnotherOctopus/constants"
+	"github.com/AnotherOctopus/goin/constants"
 	"crypto/rsa"
 	"encoding/binary"
 	"crypto"
@@ -16,7 +16,7 @@ import (
 	"gopkg.in/mgo.v2"
 	//"gopkg.in/mgo.v2/bson"
 	"reflect"
-	"github.com/AnotherOctopus/wallet"
+	"github.com/AnotherOctopus/goin/wallet"
 	"gopkg.in/mgo.v2/bson"
 )
 

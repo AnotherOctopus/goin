@@ -1,5 +1,5 @@
 //Constants is just all the constants that the currency uses
-package main
+package constants
 
 const (
 	MAXTRANSNETSIZE = 10000 // Maximum size of a serialized transaction

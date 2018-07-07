@@ -2,12 +2,12 @@
 package cnet
 
 import (
-	"github.com/AnotherOctopus/wallet"
+	"github.com/AnotherOctopus/goin/wallet"
 	"fmt"
 	"net"
 	"os"
 	"reflect"
-	"github.com/AnotherOctopus/constants"
+	"github.com/AnotherOctopus/goin/constants"
 	"container/heap"
 	"time"
 	"math"
