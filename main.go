@@ -1,7 +1,7 @@
 package main
 
 import (
-	"cnet"
+	"github.com/AnotherOctopus/cnet"
 )
 func main(){
 	//test()
