@@ -7,7 +7,7 @@ func main(){
 	//test()
 	peerips := []string{}
 	nd := cnet.New(peerips)
-	nd.requestToJoin("192.168.1.127",nil,true)
+	nd.RequestToJoin("192.168.1.127",nil,true)
 	go nd.TxListener()
 	go nd.BlListener()
 	go nd.CmdListener()

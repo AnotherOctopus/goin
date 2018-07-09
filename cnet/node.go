@@ -147,7 +147,7 @@ func (nd * Node) StartMining(kill chan bool,txs [][constants.HASHSIZE]byte) {
 	}
 }
 
-func (nd * Node) requestToJoin(nodeip string, netip string, newNet bool)(err error){
+func (nd * Node) RequestToJoin(nodeip string, netip string, newNet bool)(err error){
 	if newNet {
 		go nd.joinService(nodeip)
 		return nil
