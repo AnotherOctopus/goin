@@ -146,6 +146,36 @@ func (nd * Node) StartMining(kill chan bool,txs [][constants.HASHSIZE]byte) {
 		nd.SendBlk(*blk)
 	}
 }
+
+func (nd * Node) requestToJoin(nodeip string, netip string, newNet bool)(err error){
+	if newNet {
+		go nd.joinService(nodeip)
+		return nil
+	}
+	nd.peers = append(nd.peers, netip + ":" + constants.JOINPORT)
+	conn, err := net.Dial("tcp", netip  + ":" + constants.JOINPORT)
+	if err != nil {
+		return err
+	}
+	conn.Write([]byte(nodeip))
+	go nd.joinService(nodeip)
+	return nil
+}
+
+func (nd * Node)joinService(ip string){
+	l, err := net.Listen(constants.CONN_TYPE, constants.NETWORK_INT+":"+constants.JOINPORT)
+	tcpError(err)
+	defer l.Close()
+	txbuffer := make([]byte,constants.MAXTRANSNETSIZE)
+	for {
+		// Listen for an incoming connection.
+		conn, err := l.Accept()
+		tcpError(err)
+		conn.Read(txbuffer)
+		nd.peers = append(nd.peers, string(txbuffer) + ":" + constants.JOINPORT)
+	}
+
+}
 //Function that handles listening for incoming blocks. Handles starting and killing mining
 func (nd * Node) BlListener(){
 	// Listen for incoming connections.

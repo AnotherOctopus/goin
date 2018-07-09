@@ -7,6 +7,7 @@ const (
 	TRANSRXPORT    = "1943" // Port that transactions are recievd from
 	BLOCKRXPORT    = "1918" // Port that blocks are recived on
 	CMDRXPORT	   = "1945"
+	JOINPORT       = "1944"
 	CONN_TYPE      = "tcp" // We use tcp
 	NETWORK_INT    = "0.0.0.0" // The ip address of this computer
 	ADDRESSSIZE    = 8 // Number of bytes in an address
