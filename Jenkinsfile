@@ -1,6 +1,6 @@
 node {
         def app
-        tage ('build') {
+        stage ('build') {
                 checkout scm
                 sh 'id'
                 app = docker.build("anotheroctopus/goin")
