@@ -8,7 +8,7 @@ node {
         stage ('setupswarm') {
                 sh 'docker network create --subnet=172.18.0.0/16 stalinnet'
                 sh 'docker run -d --hostname OriginNode --network stalinnet anotheroctopus/goin'
-                sh 'docker run -d --hostname node1 --network stalinnet -e NETNODE='OriginNode' anotheroctopus/goin'
+                sh 'docker run -d --hostname node1 --network stalinnet --env NETNODE='OriginNode' anotheroctopus/goin'
         }
         stage('cleanup'){
                 sh 'docker stop $(docker ps -a -q)'
