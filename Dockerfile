@@ -8,4 +8,5 @@ RUN go get github.com/AnotherOctopus/goin/constants/
 EXPOSE 1945
 EXPOSE 1943
 EXPOSE 1918
+EXPOSE 1944
 CMD ["go","run","main.go"]

@@ -2,12 +2,18 @@ package main
 
 import (
 	"github.com/AnotherOctopus/goin/cnet"
+	"log"
+	"os"
 )
 func main(){
-	//test()
+	hostdomain,err := os.Hostname()
+	if err != nil {
+		log.Println("Something up nigga")
+		os.Exit(1)
+	}
 	peerips := []string{}
 	nd := cnet.New(peerips)
-	nd.RequestToJoin("192.168.1.127","",true)
+	nd.RequestToJoin(hostdomain,os.Getenv("NETNODE"),os.Getenv("NETNODE")!="")
 	go nd.TxListener()
 	go nd.BlListener()
 	go nd.CmdListener()
