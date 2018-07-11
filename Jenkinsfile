@@ -15,6 +15,9 @@ node {
                 sh 'docker run -d --hostname node5 --network stalinnet --env NETNODE=\'OriginNode\' anotheroctopus/goin'
                 sh 'docker run -d --hostname node6 --network stalinnet --env NETNODE=\'OriginNode\' anotheroctopus/goin'
         }
+        stage('tests') {
+
+        }
         stage('cleanup'){
                 sh 'docker stop $(docker ps -a -q)'
                 sh 'docker rm $(docker ps -a -q)'
