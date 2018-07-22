@@ -1,0 +1,4 @@
+FROM python:3.6-slim
+WORKDIR /testbench
+ADD goincli /testbench
+CMD ["python","goincli"]

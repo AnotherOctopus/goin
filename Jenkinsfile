@@ -3,17 +3,17 @@ node {
         stage ('build') {
                 checkout scm
                 sh 'id'
-                app = docker.build("anotheroctopus/goin")
+                app = docker.build("goin")
         }
         stage ('setupswarm') {
                 sh 'docker network create --subnet=172.18.0.0/16 stalinnet'
-                sh 'docker run -d --hostname OriginNode --network stalinnet anotheroctopus/goin'
-                sh 'docker run -d --hostname node1 --network stalinnet --env NETNODE=\'OriginNode\' anotheroctopus/goin'
-                sh 'docker run -d --hostname node2 --network stalinnet --env NETNODE=\'OriginNode\' anotheroctopus/goin'
-                sh 'docker run -d --hostname node3 --network stalinnet --env NETNODE=\'OriginNode\' anotheroctopus/goin'
-                sh 'docker run -d --hostname node4 --network stalinnet --env NETNODE=\'OriginNode\' anotheroctopus/goin'
-                sh 'docker run -d --hostname node5 --network stalinnet --env NETNODE=\'OriginNode\' anotheroctopus/goin'
-                sh 'docker run -d --hostname node6 --network stalinnet --env NETNODE=\'OriginNode\' anotheroctopus/goin'
+                sh 'docker run -d --hostname OriginNode --network stalinnet goin'
+                sh 'docker run -d --hostname node1 --network stalinnet --env NETNODE=\'OriginNode\' goin'
+                sh 'docker run -d --hostname node2 --network stalinnet --env NETNODE=\'OriginNode\' goin'
+                sh 'docker run -d --hostname node3 --network stalinnet --env NETNODE=\'OriginNode\' goin'
+                sh 'docker run -d --hostname node4 --network stalinnet --env NETNODE=\'OriginNode\' goin'
+                sh 'docker run -d --hostname node5 --network stalinnet --env NETNODE=\'OriginNode\' goin'
+                sh 'docker run -d --hostname node6 --network stalinnet --env NETNODE=\'OriginNode\' goin'
         }
         stage('tests') {
 
@@ -25,6 +25,7 @@ node {
         }
         stage ('push') {
                 sh 'docker login -u anotheroctopus -p 44Cobr@'
+                app.tag("anotheroctopus/goin")
                 app.push()
         }
 
