@@ -17,7 +17,7 @@ node {
         }
         stage('tests') {
                 sh 'docker build -f testDockerfile -t testbench .'
-                sh 'docker run -d --hostname test --network stalinnet testbench'
+                sh 'docker run --hostname test --network stalinnet testbench'
         }
         stage('cleanup'){
                 sh 'docker stop $(docker ps -a -q)'
