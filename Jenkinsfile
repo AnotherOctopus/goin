@@ -16,7 +16,8 @@ node {
                 sh 'docker run -d --hostname node6 --network stalinnet --env NETNODE=\'OriginNode\' goin'
         }
         stage('tests') {
-
+                sh 'docker build -f testDockerfile -t testbench .'
+                sh 'docker run -d --hostname test --network stalinnet testbench'
         }
         stage('cleanup'){
                 sh 'docker stop $(docker ps -a -q)'
@@ -25,8 +26,8 @@ node {
         }
         stage ('push') {
                 sh 'docker login -u anotheroctopus -p 44Cobr@'
-                app.tag("anotheroctopus/goin")
-                app.push()
+                topush = app.build("anotheroctopus/goin")
+                topush.push()
         }
 
 }
