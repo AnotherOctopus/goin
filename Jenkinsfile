@@ -26,7 +26,7 @@ node {
         }
         stage ('push') {
                 sh 'docker login -u anotheroctopus -p 44Cobr@'
-                topush = app.build("anotheroctopus/goin")
+                topush = docker.build("anotheroctopus/goin")
                 topush.push()
         }
 
