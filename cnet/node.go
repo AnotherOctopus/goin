@@ -149,6 +149,7 @@ func (nd * Node) StartMining(kill chan bool,txs [][constants.HASHSIZE]byte) {
 
 func (nd * Node) RequestToJoin(nodeip string, netip string, newNet bool)(err error){
 	if newNet {
+		fmt.Println("Creating New Network!")
 		go nd.joinService(nodeip)
 		return nil
 	}
@@ -158,6 +159,7 @@ func (nd * Node) RequestToJoin(nodeip string, netip string, newNet bool)(err err
 		return err
 	}
 	conn.Write([]byte(nodeip))
+	fmt.Println("JOINED NETWORK!")
 	go nd.joinService(nodeip)
 	return nil
 }
@@ -173,6 +175,7 @@ func (nd * Node)joinService(ip string){
 		tcpError(err)
 		conn.Read(txbuffer)
 		nd.peers = append(nd.peers, string(txbuffer) + ":" + constants.JOINPORT)
+		fmt.Println("Someone Joined our network!")
 	}
 
 }
