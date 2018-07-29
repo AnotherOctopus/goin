@@ -6,18 +6,16 @@ node {
                 app = docker.build("goin")
         }
         stage ('setupswarm') {
-                sh 'docker network create --subnet=172.18.0.0/16 stalinnet'
-                sh 'docker run -d --hostname OriginNode --network stalinnet goin'
-                sh 'docker run -d --hostname node1 --network stalinnet --env NETNODE=\'OriginNode\' goin'
-                sh 'docker run -d --hostname node2 --network stalinnet --env NETNODE=\'OriginNode\' goin'
-                sh 'docker run -d --hostname node3 --network stalinnet --env NETNODE=\'OriginNode\' goin'
-                sh 'docker run -d --hostname node4 --network stalinnet --env NETNODE=\'OriginNode\' goin'
-                sh 'docker run -d --hostname node5 --network stalinnet --env NETNODE=\'OriginNode\' goin'
-                sh 'docker run -d --hostname node6 --network stalinnet --env NETNODE=\'OriginNode\' goin'
+                sh 'docker network create --subnet=172.18.0.0/24 stalinnet'
+                sh 'docker run -d --ip 172.18.0.2 --network stalinnet goin'
+                sh 'docker run -d --ip 172.18.0.3 --network stalinnet --env NETNODE=\'172.18.0.2\' goin'
+                sh 'docker run -d --ip 172.18.0.4 --network stalinnet --env NETNODE=\'172.18.0.2\' goin'
+                sh 'docker run -d --ip 172.18.0.5 --network stalinnet --env NETNODE=\'172.18.0.2\' goin'
+                sh 'docker run -d --ip 172.18.0.6 --network stalinnet --env NETNODE=\'172.18.0.2\' goin'
+                sh 'docker run -d --ip 172.18.0.7 --network stalinnet --env NETNODE=\'172.18.0.2\' goin'
+                sh 'docker run -d --ip 172.18.0.8 --network stalinnet --env NETNODE=\'172.18.0.2\' goin'
         }
         stage('tests') {
-                sh 'docker build -f testDockerfile -t testbench .'
-                sh 'docker run --hostname test --network stalinnet testbench'
         }
         stage('cleanup'){
                 sh 'docker stop $(docker ps -a -q)'

@@ -5,22 +5,26 @@ import socket
 import time
 CMDPORT=1945
 
-def sendString(toSend):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+def sender(ip):
+        def sendIP(toSend):
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-        # Connect the socket to the port where the server is listening
-        server_address = ("node1", CMDPORT)
-        sock.connect(server_address) 
-        # Create a TCP/IP socket
-        sock.send(toSend)
-        sock.close()
-        
-        time.sleep(1)
+                # Connect the socket to the port where the server is listening
+                server_address = (ip, CMDPORT)
+                print(server_address)
+                sock.connect(server_address) 
+                # Create a TCP/IP socket
+                sock.send(toSend)
+                sock.close()
+                
+                time.sleep(1)
+        return sendIP
         
 def sendTx(*args):
         wallIdx = args[0][0]
         addressIdx = args[0][1]
         txTx = args[0][2]
+        sendString = sender(args[3])
         sendString("1")
         sendString(wallIdx)
         sendString(addressIdx)
@@ -30,25 +34,30 @@ def prepTx(*args):
         txFilename = args[0][0]
         inputs = args[0][1]
         outputs = args[0][2]
+        sendString = sender(args[3])
         sendString("2")
         sendString(txFilename)
         sendString(addressIdx)
         sendString(txTx)
 
 def viewBal(*args):
+        sendString = sender(args[0])
         sendString("3")
 
 def makeWal(*args):
         walFilename = args[0][0]
+        sendString = sender(args[1])
         sendString("4")
         sendString(walFilename)
 
 def loadWal(*args):
         walFilename = args[0][0]
+        sendString = sender(args[1])
         sendString("5")
         sendString(walFilename)
 
 def done(*args):
+        sendString = sender(args[0])
         sendString("10")
 
 if __name__ == "__main__":
@@ -59,5 +68,6 @@ if __name__ == "__main__":
                     "5": loadWal,
                    "10": done
                   }
-        makeWal("newwallet")
+        makeWal("newwallet","172.18.0.2")
+        done("172.18.0.2")
        
