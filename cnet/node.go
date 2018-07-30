@@ -148,7 +148,6 @@ func (nd * Node) StartMining(kill chan bool,txs [][constants.HASHSIZE]byte) {
 }
 
 func (nd * Node) RequestToJoin(nodeip string, netip string, newNet bool)(err error){
-	fmt.Println("Blerg",newNet)
 	if newNet {
 		fmt.Println("Creating New Network!")
 		go nd.joinService(nodeip)

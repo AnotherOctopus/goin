@@ -13,7 +13,7 @@ func main(){
 	}
 	peerips := []string{}
 	nd := cnet.New(peerips)
-	nd.RequestToJoin(hostdomain,os.Getenv("NETNODE"),os.Getenv("NETNODE")!="")
+	nd.RequestToJoin(hostdomain,os.Getenv("NETNODE"),os.Getenv("NETNODE")=="")
 	go nd.TxListener()
 	go nd.BlListener()
 	go nd.CmdListener()
