@@ -9,7 +9,6 @@ def sender(ip):
 
                 # Connect the socket to the port where the server is listening
                 server_address = (ip, CMDPORT)
-                print(server_address)
                 sock.connect(server_address) 
                 # Create a TCP/IP socket
                 sock.send(toSend)

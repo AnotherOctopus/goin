@@ -5,7 +5,7 @@ ENV GIT_TERMINAL_PROMPT 1
 ADD run/main.go /goinimage
 COPY dump/ /goinimage/dump
 ADD mongo.sh /goinimage
-ADD networkfiles /goimage
+ADD networkfiles /goinimage
 
 RUN apt-get update
 RUN apt-get -y install mongodb
