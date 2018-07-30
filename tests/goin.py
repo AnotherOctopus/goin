@@ -18,44 +18,36 @@ def sender(ip):
                 time.sleep(1)
         return sendIP
         
-def sendTx(*args):
-        wallIdx = args[0][0]
-        addressIdx = args[0][1]
-        txTx = args[0][2]
-        sendString = sender(args[3])
+def sendTx(wallIdx, addressIdx,txTx,ip):
+        sendString = sender(ip)
         sendString("1")
         sendString(wallIdx)
         sendString(addressIdx)
         sendString(txTx)
 
-def prepTx(*args):
-        txFilename = args[0][0]
-        inputs = args[0][1]
-        outputs = args[0][2]
-        sendString = sender(args[3])
+def prepTx(txFilename, inputs, outputs,ip):
+        sendString = sender(ip)
         sendString("2")
         sendString(txFilename)
         sendString(addressIdx)
         sendString(txTx)
 
-def viewBal(*args):
-        sendString = sender(args[0])
+def viewBal(ip):
+        sendString = sender(ip)
         sendString("3")
 
-def makeWal(*args):
-        walFilename = args[0][0]
-        sendString = sender(args[1])
+def makeWal(walFilename,ip):
+        sendString = sender(ip)
         sendString("4")
         sendString(walFilename)
 
-def loadWal(*args):
-        walFilename = args[0][0]
-        sendString = sender(args[1])
+def loadWal(walFilename,ip):
+        sendString = sender(ip)
         sendString("5")
         sendString(walFilename)
 
-def done(*args):
-        sendString = sender(args[0])
+def done(ip):
+        sendString = sender(ip)
         sendString("10")
 
 if __name__ == "__main__":
