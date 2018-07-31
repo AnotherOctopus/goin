@@ -16,6 +16,7 @@ node {
                 sh 'docker run -d --ip 172.18.0.8 --network stalinnet --env NETNODE=\'172.18.0.2\' goin'
         }
         stage('tests') {
+                sh 'ls'
                 sh 'python tests/test1.py'
         }
         stage('cleanup'){
