@@ -15,7 +15,7 @@ func exposefiles() {
 }
 
 func main() {
-	exposefiles()
+	go exposefiles()
 	hostdomain, err := os.Hostname()
 	if err != nil {
 		log.Println("Something up nigga")
