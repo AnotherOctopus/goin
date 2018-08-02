@@ -24,3 +24,7 @@ jobs:
       # specify any bash command here prefixed with `run: `
       - run: go get -v -t -d ./...
       - run: go test -v ./...
+      - run: docker network create --subnet=172.18.0.0/24 stalinnet
+      - run: docker run -d --ip 172.18.0.2 --network stalinnet goin
+      - run: docker run -d --ip 172.18.0.3 --network stalinnet --env NETNODE=\'172.18.0.2\' goin
+
