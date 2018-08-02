@@ -8,7 +8,7 @@ import (
 	mgo "gopkg.in/mgo.v2"
 )
 
-func main() {
+func create() {
 	var v interface{}
 	sess, _ := mgo.Dial("localhost")
 	defer sess.Close()
