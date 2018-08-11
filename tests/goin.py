@@ -3,60 +3,74 @@ import socket
 import time
 CMDPORT=1945
 
-def sender(ip):
-        def sendIP(toSend):
+class Wallet(object):
+        def __init__(self,n,idx,filename=None):
+                if not filename:
+                        if n.wallIdx = 0:
+                                raise ValueError("This node has no wallets")
+                        if idx >= n.walIdx:
+                                raise ValueError("The node does not have wallets that high")
+                        n.saveWal("walletu")
+                        walletraw = requests.get("http://{}/wallet{}".format(i,i)) 
+                
+
+class Node(object):
+        def __init__(self,ip):
+                self.ip = ip
+                self.walIdx = 0
+
+        def sendString(self,toSend):
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
                 # Connect the socket to the port where the server is listening
-                server_address = (ip, CMDPORT)
+                server_address = (self.ip, CMDPORT)
                 sock.connect(server_address) 
                 # Create a TCP/IP socket
                 sock.send(toSend)
                 sock.close()
                 
                 time.sleep(1)
-        return sendIP
+
         
-def sendTx(wallIdx, addressIdx,txTx,ip):
-        sendString = sender(ip)
-        sendString("1")
-        sendString(wallIdx)
-        sendString(addressIdx)
-        sendString(txTx)
+        def sendTx(self,wallIdx, addressIdx,txTx):
+                self.sendString("1")
+                self.sendString(wallIdx)
+                self.sendString(addressIdx)
+                self.sendString(txTx)
 
-def prepTx(txFilename, inputs, outputs,ip):
-        sendString = sender(ip)
-        sendString("2")
-        sendString(txFilename)
-        sendString(addressIdx)
-        sendString(txTx)
+        def prepTx(self,txFilename, inputs, outputs):
+                self.sendString("2")
+                self.sendString(txFilename)
+                for inp in inputs:
+                        self.sendString("i")
+                        self.sendString(inp.Hash)
+                        self.sendString(inp.Idx)
+                for oup in outputs:
+                        self.sendString("o")
+                        self.sendString(oup.Hash)
+                        self.sendString(oup.Amount)
 
-def viewBal(ip):
-        sendString = sender(ip)
-        sendString("3")
+        def viewBal(self):
+                self.sendString("3")
 
-def makeWal(walFilename,ip):
-        sendString = sender(ip)
-        sendString("4")
-        sendString(walFilename)
+        def makeWal(self,walFilename):
+                self.sendString("4")
+                self.sendString(walFilename)
+                self.walIdx += 1
 
-def loadWal(walFilename,ip):
-        sendString = sender(ip)
-        sendString("5")
-        sendString(walFilename)
+        def loadWal(self,walFilename):
+                self.sendString("5")
+                self.sendString(walFilename)
+        def saveWal(self,walFilename,idx):
+                self.sendString("6")
+                self.sendString(walFilename)
+                self.sendString(string(idx))
 
-def done(ip):
-        sendString = sender(ip)
-        sendString("10")
+        def done(self):
+                self.sendString("10")
 
 if __name__ == "__main__":
-        options = { "1": sendTx,
-                    "2": prepTx,
-                    "3": viewBal,
-                    "4": makeWal,
-                    "5": loadWal,
-                   "10": done
-                  }
-        makeWal("newwallet","172.18.0.2")
-        done("172.18.0.2")
+        n1 = Node("172.18.0.2")
+        n1.makeWal("newwallet")
+        n1.done()
        

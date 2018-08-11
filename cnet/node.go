@@ -2,20 +2,14 @@
 package cnet
 
 import (
-	"bytes"
 	"container/heap"
-	"encoding/base64"
-	"encoding/hex"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"math"
 	"net"
+	"net/http"
 	"os"
 	"reflect"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/AnotherOctopus/goin/constants"
@@ -323,205 +317,15 @@ func (nd *Node) TxListener() {
 	}
 }
 
+func (nd *Node) HandleCmd(w http.ResponseWriter, r *http.Request) {
+	/*[1] Send Transaction From File")
+	  [2] Manually Prepare Transaction")
+	  [3] View Current Balence")
+	  [4] Make A New Wallet")
+	  [5] Load A Wallet")
+	  [6] Save A Wallet
+	  [10] Exit")*/
+}
 func (nd *Node) CmdListener() {
-	l, err := net.Listen(constants.CONN_TYPE, constants.NETWORK_INT+":"+constants.CMDRXPORT)
-	tcpError(err)
-	// Close the listener when the application closes.
-	defer l.Close()
-	fmt.Println("Transaction listening on " + constants.NETWORK_INT + ":" + constants.CMDRXPORT)
-	txbuffer := make([]byte, constants.MAXTRANSNETSIZE)
-	fmt.Println("Listening for Commands...")
-	done := false
-	for !done {
-		/*[1] Send Transaction From File")
-		  [2] Manually Prepare Transaction")
-		  [3] View Current Balence")
-		  [4] Make A New Wallet")
-		  [5] Load A Wallet")
-		  [10] Exit")*/
-		conn, err := l.Accept()
-		tcpError(err)
-		conn.Read(txbuffer)
-		text := string(bytes.Trim(txbuffer, "\x00"))
-		i, err := strconv.ParseInt(text, 10, 8)
-		if err != nil {
-			fmt.Println("INPUT IS NOT A NUMBER")
-			fmt.Println(err)
-			continue
-		}
-		switch i {
-		case 1:
-			if len(nd.Wallets) == 0 {
-				fmt.Println("Load a Wallet First!")
-				break
-			}
-			fmt.Println("Select a Wallet index to use")
-			for i := range nd.Wallets {
-				fmt.Println(fmt.Sprintf("[%v]", i))
-			}
-			conn, err := l.Accept()
-			tcpError(err)
-			conn.Read(txbuffer)
-			text = string(bytes.Trim(txbuffer, "\x00"))
-			windex, err := strconv.ParseInt(text, 10, 8)
-			if err != nil {
-				fmt.Println("INPUT IS NOT A NUMBER")
-				fmt.Println(err)
-				continue
-			}
-			w := nd.Wallets[windex]
-			fmt.Println("Select an Address to use")
-			for i, addr := range w.Address {
-				fmt.Println(fmt.Sprintf("[%v]: %v", i, hex.EncodeToString(addr[:])))
-			}
-			conn, err = l.Accept()
-			tcpError(err)
-			conn.Read(txbuffer)
-			text = string(bytes.Trim(txbuffer, "\x00"))
-			addidx, err := strconv.ParseInt(text, 10, 8)
-			if err != nil {
-				fmt.Println("INPUT IS NOT A NUMBER")
-				fmt.Println(err)
-				continue
-			}
-			addrtouse := w.Address[addidx]
-			fmt.Println("Using ", hex.EncodeToString(addrtouse[:]))
-			fmt.Println("Select Filename of Transaction to send")
-			conn, err = l.Accept()
-			tcpError(err)
-			conn.Read(txbuffer)
-			filename := string(bytes.Trim(txbuffer, "\x00"))
-
-			txtosend := LoadFTX(filename)
-			txtosend.Meta.Address = addrtouse
-			txtosend.Meta.Pubkey = w.Keys[addidx].PublicKey
-			txtosend.Meta.TimePrepared = time.Now().Unix()
-			txtosend.SetHash()
-
-			err = nd.SendTx(*txtosend)
-			CheckError(err)
-			fmt.Println("Sent")
-		case 2:
-			savetx := new(AnonTransaction)
-			savetx.Outputs = make([]Output, 0)
-			savetx.Inputs = make([]Input, 0)
-			fmt.Println("Select Filename of Transaction to prepare")
-			conn, err = l.Accept()
-			tcpError(err)
-			conn.Read(txbuffer)
-			filename := string(bytes.Trim(txbuffer, "\x00"))
-			var inp byte
-			for inp != 'd' {
-				fmt.Println("Select An Option")
-				fmt.Println("[i] Add Input")
-				fmt.Println("[o] Add Output")
-				fmt.Println("[d] Finish and Save")
-				conn, err = l.Accept()
-				tcpError(err)
-				conn.Read(txbuffer)
-				rawinp := string(bytes.Trim(txbuffer, "\x00"))
-				inp = rawinp[0]
-				switch inp {
-				case 'i':
-					var newInput Input
-					var hashbuffer [constants.HASHSIZE]byte
-					fmt.Println("Hash for Previous Transaction for input?")
-					conn, err = l.Accept()
-					tcpError(err)
-					conn.Read(txbuffer)
-					prev := string(bytes.Trim(txbuffer, "\x00"))
-					CheckError(err)
-					newHash, err := base64.StdEncoding.DecodeString(prev)
-					if err != nil {
-						fmt.Println("Not Valid b64")
-						continue
-					}
-					fmt.Println("Index for Previous Transaction for input?")
-					conn, err = l.Accept()
-					tcpError(err)
-					conn.Read(txbuffer)
-					prev = string(bytes.Trim(txbuffer, "\x00"))
-					CheckError(err)
-					transidx, err := strconv.ParseInt(prev, 10, 8)
-					if err != nil {
-						fmt.Println("INPUT IS NOT A NUMBER")
-						fmt.Println(err)
-						continue
-					}
-					newInput.OutIdx = uint32(transidx)
-					copy(hashbuffer[:], newHash)
-					newInput.PrevTransHash = hashbuffer
-					savetx.Inputs = append(savetx.Inputs, newInput)
-
-				case 'o':
-					var newOutput Output
-					var hashbuffer [constants.ADDRESSSIZE]byte
-					fmt.Println("Hash for Address for output?")
-					conn, err = l.Accept()
-					tcpError(err)
-					conn.Read(txbuffer)
-					out := strings.TrimSpace(string(txbuffer))
-					CheckError(err)
-					newHash, err := base64.StdEncoding.DecodeString(out)
-					if err != nil {
-						fmt.Println("Not Valid b64")
-						continue
-					}
-					fmt.Println("Amount to send?")
-					conn, err = l.Accept()
-					tcpError(err)
-					conn.Read(txbuffer)
-					out = strings.TrimSpace(string(txbuffer))
-					CheckError(err)
-					amount, err := strconv.ParseInt(out, 10, 8)
-					if err != nil {
-						fmt.Println("INPUT IS NOT A NUMBER")
-						fmt.Println(err)
-						continue
-					}
-					newOutput.Amount = uint32(amount)
-					copy(hashbuffer[:], newHash)
-					newOutput.Signature = make([]byte, 0)
-					newOutput.Addr = hashbuffer
-					savetx.Outputs = append(savetx.Outputs, newOutput)
-				case 'd':
-					data, err := json.Marshal(savetx)
-					CheckError(err)
-					ioutil.WriteFile(filename, data, 0644)
-				default:
-					fmt.Println(inp, " is not a valid input")
-				}
-			}
-
-		case 3:
-			fmt.Println("Balence")
-
-		case 4:
-			w := wallet.NewWallet(3)
-			conn, err = l.Accept()
-			tcpError(err)
-			conn.Read(txbuffer)
-			filename := string(bytes.Trim(txbuffer, "\x00"))
-			ioutil.WriteFile(filename, w.Dump(), 0644)
-			nd.Wallets = append(nd.Wallets, w)
-
-		case 5:
-			fmt.Println("Select Filename of wallet")
-			conn, err = l.Accept()
-			tcpError(err)
-			conn.Read(txbuffer)
-			filename := string(bytes.Trim(txbuffer, "\x00"))
-			rawdata, err := ioutil.ReadFile(filename)
-			wallet.CheckError(err)
-			nd.Wallets = append(nd.Wallets, wallet.LoadWallet(rawdata))
-
-		case 10:
-			fmt.Println("Exiting")
-			done = true
-			break
-
-		default:
-			fmt.Println("Select a valid number")
-		}
-	}
+	http.HandleFunc("/cmd", nd.HandleCmd)
 }

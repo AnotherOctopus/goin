@@ -1,11 +1,13 @@
-import goin
+from goin import Node
 import requests
 NETDIR = "networkfiles"
 print("Loading Wallets")
-goin.loadWal("genesisWallet","172.18.0.2")
-for i in range(3,9):
-    goin.makeWal("newwallet{}".format(i),"172.18.0.{}".format(i))
-    wallet = requests.get("http://172.18.0.{}".format(i)) 
-    print(wallet)
-    goin.loadWal("newwallet{}".format(i),"172.18.0.{}".format(i))
-goin.prepTx()
+rootnode = Node("172.18.0.2")
+rootnode.loadWal("genesisWallet")
+nodes = []
+for i in range(3,11):
+    n = Node("172.18.0.{}".format(i))
+    n.makeWal("newwallet{}".format(i))
+    nodes.append(n)
+    wallet = requests.get("http://172.18.0.{}/newwallet{}".format(i,i)) 
+    print(wallet.content)
