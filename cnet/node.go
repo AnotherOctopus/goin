@@ -3,6 +3,7 @@ package cnet
 
 import (
 	"container/heap"
+	"encoding/json"
 	"fmt"
 	"log"
 	"math"
@@ -28,7 +29,6 @@ type Node struct {
 func CheckError(err error) {
 	if err != nil {
 		fmt.Println("Error: ", err)
-		os.Exit(1)
 	}
 }
 
@@ -318,13 +318,89 @@ func (nd *Node) TxListener() {
 }
 
 func (nd *Node) HandleCmd(w http.ResponseWriter, r *http.Request) {
-	/*[1] Send Transaction From File")
-	  [2] Manually Prepare Transaction")
-	  [3] View Current Balence")
-	  [4] Make A New Wallet")
-	  [5] Load A Wallet")
-	  [6] Save A Wallet
-	  [10] Exit")*/
+	/*[1] Send Transaction From File"
+	  [2] Manually Prepare Transaction To File"
+	  [3] View Current Balence To File"
+	  [4] Make A New Wallet To File"
+	  [5] Load A Wallet From File"
+	  [6] Save A Wallet To File
+	  Other exits
+
+		expects json of
+		{
+			<key>: <valuetype>, <which tasks require>
+			"job": int, [1,2,3,4,5,6]
+			"filename":string, [1,2,3,4,5,6]
+			"index":int,[3,6]
+			"Inputs": [(Hash,int)], [2]
+			"Outputs": [(Hash,int)] [2]
+		}
+	*/
+	var rawjson interface{}
+
+	raw := make([]byte, r.ContentLength)
+	_, err := r.Body.Read(raw)
+	CheckError(err)
+	json.Unmarshal(raw, &rawjson)
+	jobnum, hasjob := rawjson.(map[string]interface{})["job"]
+	filename, hasfn := rawjson.(map[string]interface{})["filename"]
+
+	if hasjob && hasfn {
+		switch jobnum {
+		//[1] Send Transaction From File"
+		case 1:
+			log.Println(filename)
+		//[2] Manually Prepare Transaction To File"
+		case 2:
+			log.Println(filename)
+			inputs, hasinputs := rawjson.(map[string]interface{})["inputs"]
+			if !hasinputs {
+				w.Write([]byte("X"))
+				break
+			}
+			outputs, hasoutputs := rawjson.(map[string]interface{})["outputs"]
+			if !hasoutputs {
+				w.Write([]byte("X"))
+				break
+			}
+		//[3] View Current Balence To File"
+		case 3:
+			log.Println(filename)
+			idx, hasidx := rawjson.(map[string]interface{})["index"]
+			if !hasidx {
+				w.Write([]byte("X"))
+				break
+			}
+			if idx.(int) > len(nd.Wallets) {
+				w.Write([]byte("X"))
+				break
+			}
+			wall := nd.Wallets[idx]
+		//[4] Make A New Wallet To File"
+		case 4:
+			log.Println(filename)
+		//[5] Load A Wallet From File"
+		case 5:
+			log.Println(filename)
+		//[6] Save A Wallet To File
+		case 6:
+			log.Println(filename)
+			idx, hasidx := rawjson.(map[string]interface{})["index"]
+			if !hasidx {
+				w.Write([]byte("X"))
+				break
+			}
+			if idx.(int) > len(nd.Wallets) {
+				w.Write([]byte("X"))
+				break
+			}
+			wall := nd.Wallets[idx]
+		default:
+			w.Write([]byte("{\"done\":\"done\"}"))
+		}
+	} else {
+		w.Write([]byte("X"))
+	}
 }
 func (nd *Node) CmdListener() {
 	http.HandleFunc("/cmd", nd.HandleCmd)

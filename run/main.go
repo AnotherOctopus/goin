@@ -11,7 +11,6 @@ import (
 func exposefiles() {
 	fs := http.FileServer(http.Dir("."))
 	http.Handle("/", fs)
-	http.ListenAndServe(":80", nil)
 }
 
 func main() {
@@ -27,5 +26,6 @@ func main() {
 	go nd.TxListener()
 	go nd.BlListener()
 	go nd.CmdListener()
+	http.ListenAndServe(":1945", nil)
 	<-make(chan bool)
 }
