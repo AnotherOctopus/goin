@@ -1,76 +1,45 @@
 import sys
+import requests
 import socket
 import time
-CMDPORT=1945
 
-class Wallet(object):
-        def __init__(self,n,idx,filename=None):
-                if not filename:
-                        if n.wallIdx = 0:
-                                raise ValueError("This node has no wallets")
-                        if idx >= n.walIdx:
-                                raise ValueError("The node does not have wallets that high")
-                        n.saveWal("walletu")
-                        walletraw = requests.get("http://{}/wallet{}".format(i,i)) 
-                
+#[1] Send Transaction From File"
+#[2] Manually Prepare Transaction To File"
+#[3] View Current Balence To File"
+#[4] Make A New Wallet To File"
+#[5] Load A Wallet From File"
+#[6] Save A Wallet To File
+#Other exits
 
+#expects json of
+#{
+#	<key>: <valuetype>, <which tasks require>
+#	"job": int, [1,2,3,4,5,6]
+#	"filename":string, [1,2,3,4,5,6]
+#	"walindex":int,[1,3,6]
+#	"addridx": int, [1]
+#	"inputs": [(Hash,int)], [2]
+#	"outputs": [(Hash,int)] [2]
+#}
+#*/
 class Node(object):
-        def __init__(self,ip):
+        def __init__(self,ip="localhost"):
+                self.cmdport = 1945
                 self.ip = ip
                 self.walIdx = 0
 
-        def sendString(self,toSend):
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-                # Connect the socket to the port where the server is listening
-                server_address = (self.ip, CMDPORT)
-                sock.connect(server_address) 
-                # Create a TCP/IP socket
-                sock.send(toSend)
-                sock.close()
-                
-                time.sleep(1)
-
-        
-        def sendTx(self,wallIdx, addressIdx,txTx):
-                self.sendString("1")
-                self.sendString(wallIdx)
-                self.sendString(addressIdx)
-                self.sendString(txTx)
-
-        def prepTx(self,txFilename, inputs, outputs):
-                self.sendString("2")
-                self.sendString(txFilename)
-                for inp in inputs:
-                        self.sendString("i")
-                        self.sendString(inp.Hash)
-                        self.sendString(inp.Idx)
-                for oup in outputs:
-                        self.sendString("o")
-                        self.sendString(oup.Hash)
-                        self.sendString(oup.Amount)
-
-        def viewBal(self):
-                self.sendString("3")
-
-        def makeWal(self,walFilename):
-                self.sendString("4")
-                self.sendString(walFilename)
-                self.walIdx += 1
-
-        def loadWal(self,walFilename):
-                self.sendString("5")
-                self.sendString(walFilename)
-        def saveWal(self,walFilename,idx):
-                self.sendString("6")
-                self.sendString(walFilename)
-                self.sendString(string(idx))
-
-        def done(self):
-                self.sendString("10")
+        def sendCmd(self,job,filename,walindex="",addridx="",inputs=[],outputs=[]):
+                send = {
+                        "job": job,
+                        "filename":filename,
+                        "addridx":addridx,
+                        "walindex":walindex,
+                        "inputs":inputs,
+                        "outputs":outputs
+                }
+                r = requests.post("http://{}:{}/cmd".format(self.ip,self.cmdport),json=send)
+                return r.content
 
 if __name__ == "__main__":
-        n1 = Node("172.18.0.2")
-        n1.makeWal("newwallet")
-        n1.done()
-       
+        n1 = Node()
+        print n1.sendCmd(4,"newwallet")
