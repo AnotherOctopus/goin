@@ -28,18 +28,53 @@ class Node(object):
                 self.ip = ip
                 self.walIdx = 0
 
+        def sendTx(self,filename,walindex,addridx):
+                return self.sendCmd(1,
+                                filename,
+                                walindex=walindex,
+                                addridx=addridx
+                                )
+        def loadWallet(self,filename):
+                self.walIdx += 1
+                return self.sendCmd(5,filename)
+        def prepTx(self,filename,walindex,addridx,inputs,outputs):
+                return self.sendCmd(2,filename,
+                                walindex=walindex,
+                                addridx=addridx,
+                                inputs=inputs,
+                                outputs=outputs
+                                )
         def sendCmd(self,job,filename,walindex="",addridx="",inputs=[],outputs=[]):
                 send = {
                         "job": job,
                         "filename":filename,
                         "addridx":addridx,
-                        "walindex":walindex,
+                        "walidx":walindex,
                         "inputs":inputs,
                         "outputs":outputs
                 }
                 r = requests.post("http://{}:{}/cmd".format(self.ip,self.cmdport),json=send)
                 return r.content
+        def getClaimedTxs(self):
+                txByWallet = requests.get("http://{}:{}/claimedtxs".format(self.ip,self.cmdport)).content
+                txByWallet = txByWallet.strip('%')
+                txByWallet = txByWallet.split('%')
+                txs = [tx.strip('#').split('#') for tx in txByWallet]
+                return txs
+
+
+def getAddresses(ip,cmdport):
+        raw = requests.get("http://{}:{}/addresses".format(ip,cmdport)).content
+        raw = raw.strip('%')
+        raw = raw.split('%')
+        addrs = [addr.strip('#').split('#') for addr in raw]
+        return addrs
 
 if __name__ == "__main__":
         n1 = Node()
-        print n1.sendCmd(4,"newwallet")
+        n1.loadWallet("genesisWallet")
+        addressToSendTo = getAddresses("localhost",1945)[0][0]
+        txToSend = n1.getClaimedTxs()[0][0]
+        print "Lets send {} goins to {}".format(txToSend,addressToSendTo)
+        print n1.prepTx("trax1",0,0,[{"hash":txToSend,"idx":0}],[{"hash":addressToSendTo,"amt":100}])
+        print n1.sendTx("trax1",0,0)

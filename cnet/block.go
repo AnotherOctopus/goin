@@ -9,6 +9,7 @@ import (
 	"log"
 	"math"
 	"math/big"
+	"os"
 	"strconv"
 
 	"github.com/AnotherOctopus/goin/constants"
@@ -16,6 +17,8 @@ import (
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
+
+const genHash string = "AAAAGE9RN1mk+OmHtzDF6yAONfN9o4IynGfDQ8tBbWo="
 
 type Block struct {
 	blocksize        uint64 // How many bytes are in a block
@@ -104,7 +107,7 @@ func (bl Block) String() string {
 func CreateGenesisBlock(creator *wallet.Wallet) (bl Block, tx Transaction) {
 	bl.Header.PrevBlockHash = [constants.HASHSIZE]byte{0}
 	bl.Header.Tstamp = uint64(100) //time.Now().Unix())
-	bl.Header.Target = 243
+	bl.Header.Target = 230
 	bl.Header.Noncetry = 0
 	bl.blockchainlength = 0
 
@@ -133,22 +136,31 @@ func CreateGenesisBlock(creator *wallet.Wallet) (bl Block, tx Transaction) {
 	bl.Header.TransHash = Merkleify(fulltxs)
 	bl.blocksize = uint64(totalTxSize)
 	bl.transCnt = uint32(len(bl.Txs))
-	log.Println(bl)
 	bl.SetHash(mine(creator, bl))
+	creator.ClaimedTxs = append(creator.ClaimedTxs, tx.Hash)
 
 	return
 }
 func GenesisBlock() Block {
 	sess, err := mgo.Dial("localhost")
-	checkerror(err)
+	if err != nil {
+		log.Println("CANT FIND GENISIS BLOCK (can't dial)")
+		os.Exit(1)
+	}
 	defer sess.Close()
 	handle := sess.DB("Goin").C("Blocks")
-	genblockHash, err := base64.StdEncoding.DecodeString("AABi8dOFlRxS3FcczaW372CP6/13Hnpt145fh2FmHVo=")
-	checkerror(err)
+	genblockHash, err := base64.StdEncoding.DecodeString(genHash)
+	if err != nil {
+		log.Println("CANT FIND GENISIS BLOCK(cant decode hash)")
+		os.Exit(1)
+	}
 	genBlkQuery := handle.Find(bson.M{"hash": genblockHash})
 	var genblk Block
 	err = genBlkQuery.One(&genblk)
-	checkerror(err)
+	if err != nil {
+		log.Println("CANT FIND GENISIS BLOCK(cant find one)")
+		os.Exit(1)
+	}
 	return genblk
 }
 

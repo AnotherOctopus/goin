@@ -8,13 +8,8 @@ import (
 	"github.com/AnotherOctopus/goin/cnet"
 )
 
-func exposefiles() {
-	fs := http.FileServer(http.Dir("."))
-	http.Handle("/", fs)
-}
-
 func main() {
-	go exposefiles()
+	//create()
 	hostdomain, err := os.Hostname()
 	if err != nil {
 		log.Println("Something up nigga")
@@ -26,6 +21,7 @@ func main() {
 	go nd.TxListener()
 	go nd.BlListener()
 	go nd.CmdListener()
+	go nd.ExposeInfo()
 	http.ListenAndServe(":1945", nil)
 	<-make(chan bool)
 }

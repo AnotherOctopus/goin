@@ -3,7 +3,7 @@ import requests
 NETDIR = "networkfiles"
 print("Loading Wallets")
 rootnode = Node("172.18.0.2")
-rootnode.loadWal("genesisWallet")
+rootnode.sendCmd("genesisWallet")
 nodes = []
 for i in range(3,11):
     n = Node("172.18.0.{}".format(i))
