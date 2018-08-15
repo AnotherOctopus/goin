@@ -10,7 +10,7 @@ import (
 	mgo "gopkg.in/mgo.v2"
 )
 
-func create() {
+func create() string {
 	var v interface{}
 	sess, _ := mgo.Dial("localhost")
 	defer sess.Close()
@@ -23,7 +23,6 @@ func create() {
 	cnet.SaveTx(genesisTx)
 	log.Println(genesisBlock)
 	ioutil.WriteFile("genesisWallet", w.Dump(), 0644)
-	log.Println("GENISIS HASH")
-	log.Println(base64.StdEncoding.EncodeToString(genesisBlock.Hash[:]))
+	return base64.StdEncoding.EncodeToString(genesisBlock.Hash[:])
 
 }

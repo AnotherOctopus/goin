@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
+	"io/ioutil"
 	"log"
 	"math"
 	"math/big"
@@ -18,7 +19,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-const genHash string = "AAAAGE9RN1mk+OmHtzDF6yAONfN9o4IynGfDQ8tBbWo="
+const hashfile string = "genhash"
 
 type Block struct {
 	blocksize        uint64 // How many bytes are in a block
@@ -35,6 +36,11 @@ type Block struct {
 	Txs      [][constants.HASHSIZE]byte // The actual transactions
 }
 
+func getgenHash() string {
+	raw, err := ioutil.ReadFile(hashfile)
+	checkerror(err)
+	return string(raw)
+}
 func LoadBlk(b []byte) (block Block) {
 	block.blocksize = binary.LittleEndian.Uint64(b[0:8])
 	block.Header.Tstamp = binary.LittleEndian.Uint64(b[8:16])
@@ -90,7 +96,8 @@ func (bl Block) HeaderSize() int {
 
 //For printing uses
 func (bl Block) String() string {
-	retstring := ""
+	retstring := "\n"
+	retstring += "---------------------------------------------------------------------------\n"
 	retstring += "Block Made At: " + strconv.Itoa(int(bl.Header.Tstamp)) + "\n"
 	retstring += "Previous Block: " + hex.EncodeToString(bl.Header.PrevBlockHash[:]) + "\n"
 	retstring += "Ease: " + strconv.Itoa(int(bl.Header.Target)) + "\n"
@@ -100,6 +107,7 @@ func (bl Block) String() string {
 		retstring += getTxFromHash(tx).String()
 	}
 	retstring += "\n"
+	retstring += "---------------------------------------------------------------------------\n"
 	return retstring
 }
 
@@ -149,7 +157,7 @@ func GenesisBlock() Block {
 	}
 	defer sess.Close()
 	handle := sess.DB("Goin").C("Blocks")
-	genblockHash, err := base64.StdEncoding.DecodeString(genHash)
+	genblockHash, err := base64.StdEncoding.DecodeString(getgenHash())
 	if err != nil {
 		log.Println("CANT FIND GENISIS BLOCK(cant decode hash)")
 		os.Exit(1)

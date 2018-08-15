@@ -214,8 +214,6 @@ func verifyTx(tx Transaction) (err error) {
 	// Verify the signature of each Output
 	for i, outp := range tx.Outputs {
 		//Check Signature of Outputs
-		log.Println(tx.Meta.Pubkey)
-		log.Println(outp)
 		err = outp.VerifySignature(&tx.Meta.Pubkey)
 		if err != nil {
 			log.Println("There is an issue with output" + string(i))
