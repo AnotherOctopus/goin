@@ -1,13 +1,12 @@
-from goin import Node
+from goin import Node,getAddresses
 import requests
 NETDIR = "networkfiles"
 print("Loading Wallets")
-rootnode = Node("172.18.0.2")
-rootnode.sendCmd("genesisWallet")
-nodes = []
-for i in range(3,11):
-    n = Node("172.18.0.{}".format(i))
-    n.makeWal("newwallet{}".format(i))
-    nodes.append(n)
-    wallet = requests.get("http://172.18.0.{}/newwallet{}".format(i,i)) 
-    print(wallet.content)
+n1 = Node("172.18.0.2")
+n1.loadWallet("genesisWallet")
+addressToSendTo = getAddresses(n1.ip,1945)[0][0]
+txToSend = n1.getClaimedTxs()[0][0]
+print "Claimed Transactions", txToSend
+print "Lets send {} goins to {}".format(txToSend,addressToSendTo)
+print n1.prepTx("trax1",0,0,[{"hash":txToSend,"idx":0}],[{"hash":addressToSendTo,"amt":100}])
+print n1.sendTx("trax1",0,0)

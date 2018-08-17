@@ -12,6 +12,7 @@ import (
 	"math/big"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/AnotherOctopus/goin/constants"
 	"github.com/AnotherOctopus/goin/wallet"
@@ -19,7 +20,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-const hashfile string = "genhash"
+const hashfile string = "networkfiles/genhash"
 
 type Block struct {
 	blocksize        uint64 // How many bytes are in a block
@@ -114,7 +115,7 @@ func (bl Block) String() string {
 // How the genesis block is defined
 func CreateGenesisBlock(creator *wallet.Wallet) (bl Block, tx Transaction) {
 	bl.Header.PrevBlockHash = [constants.HASHSIZE]byte{0}
-	bl.Header.Tstamp = uint64(100) //time.Now().Unix())
+	bl.Header.Tstamp = uint64(time.Now().Unix())
 	bl.Header.Target = 230
 	bl.Header.Noncetry = 0
 	bl.blockchainlength = 0

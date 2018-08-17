@@ -72,9 +72,9 @@ def getAddresses(ip,cmdport):
 
 if __name__ == "__main__":
         n1 = Node()
-        n1.loadWallet("genesisWallet")
+        n1.loadWallet("networkfiles/genesisWallet")
         addressToSendTo = getAddresses("localhost",1945)[0][0]
         txToSend = n1.getClaimedTxs()[0][0]
         print "Lets send {} goins to {}".format(txToSend,addressToSendTo)
-        print n1.prepTx("trax1",0,0,[{"hash":txToSend,"idx":0}],[{"hash":addressToSendTo,"amt":100}])
-        print n1.sendTx("trax1",0,0)
+        print n1.prepTx("networkfiles/trax1",0,0,[{"hash":txToSend,"idx":0}],[{"hash":addressToSendTo,"amt":100}])
+        print n1.sendTx("networkfiles/trax1",0,0)

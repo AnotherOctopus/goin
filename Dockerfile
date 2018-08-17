@@ -2,9 +2,9 @@ FROM golang:1.9.7-stretch
 WORKDIR /goinimage
 ENV GIT_TERMINAL_PROMPT 1
 
-ADD run/main.go /goinimage
-COPY dump/ /goinimage/dump
+ADD run/ /goinimage/run
 ADD mongo.sh /goinimage
+ADD mongodb/ /goinimage/mongodb
 ADD networkfiles /goinimage
 
 RUN apt-get update
@@ -27,4 +27,5 @@ EXPOSE 1918
 EXPOSE 1944
 EXPOSE 80
 
-CMD ["go","run","main.go"]
+#CMD ["go","run","run/main.go"]
+CMD ["mongo"]

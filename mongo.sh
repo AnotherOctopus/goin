@@ -20,4 +20,5 @@ while [[ $? -ne 0 && $COUNTER -lt 60 ]] ; do
 done
 
 # Now we know mongo is ready and can continue with other commands
-mongorestore dump
+#mongorestore dump
+mv mongodb/ /var/lib/mongodb
