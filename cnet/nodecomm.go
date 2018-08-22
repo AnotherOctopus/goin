@@ -80,7 +80,9 @@ func (nd *Node) HandleCmd(w http.ResponseWriter, r *http.Request) {
 		txtosend.SetHash()
 		err := nd.SendTx(*txtosend)
 		CheckError(err)
-		fmt.Println("Sent")
+		if err == nil {
+			fmt.Println("Sent")
+		}
 		w.Write([]byte(fmt.Sprintf("{\"tx\":%v}", txtosend.String())))
 	//[2] Manually Prepare Transaction To File"
 	case 2:

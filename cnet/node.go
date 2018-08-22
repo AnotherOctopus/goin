@@ -65,14 +65,32 @@ func (nd Node) SendTx(tx Transaction) (reterr error) {
 	}
 	SaveTx(tx)
 	for _, peer := range nd.peers {
-		conn, err := net.Dial("tcp", peer)
+		log.Println("SENDING TO: " + peer + ":" + constants.TRANSRXPORT)
+		conn, err := net.Dial("tcp", peer+":"+constants.TRANSRXPORT)
 		if err != nil {
 			return err
 		}
 		_, txData := tx.Dump()
 		conn.Write(txData)
-		conn.Close()
 	}
+	return nil
+}
+
+func (nd *Node) RequestToJoin(nodeip string, netip string, newNet bool) (err error) {
+	if newNet {
+		fmt.Println("Creating New Network!")
+		go nd.joinService(nodeip)
+		return nil
+	}
+	nd.peers = append(nd.peers, netip)
+	log.Println("DIALING: " + netip + ":" + constants.JOINPORT)
+	conn, err := net.Dial("tcp", netip+":"+constants.JOINPORT)
+	if err != nil {
+		return err
+	}
+	conn.Write([]byte(nodeip))
+	fmt.Println("JOINED NETWORK!")
+	go nd.joinService(nodeip)
 	return nil
 }
 
@@ -143,39 +161,6 @@ func (nd *Node) StartMining(kill chan bool, txs [][constants.HASHSIZE]byte) {
 		SaveBlk(*blk)
 		nd.SendBlk(*blk)
 	}
-}
-
-func (nd *Node) RequestToJoin(nodeip string, netip string, newNet bool) (err error) {
-	if newNet {
-		fmt.Println("Creating New Network!")
-		go nd.joinService(nodeip)
-		return nil
-	}
-	nd.peers = append(nd.peers, netip+":"+constants.JOINPORT)
-	conn, err := net.Dial("tcp", netip+":"+constants.JOINPORT)
-	if err != nil {
-		return err
-	}
-	conn.Write([]byte(nodeip))
-	fmt.Println("JOINED NETWORK!")
-	go nd.joinService(nodeip)
-	return nil
-}
-
-func (nd *Node) joinService(ip string) {
-	l, err := net.Listen(constants.CONN_TYPE, constants.NETWORK_INT+":"+constants.JOINPORT)
-	tcpError(err)
-	defer l.Close()
-	txbuffer := make([]byte, constants.MAXTRANSNETSIZE)
-	for {
-		// Listen for an incoming connection.
-		conn, err := l.Accept()
-		tcpError(err)
-		conn.Read(txbuffer)
-		nd.peers = append(nd.peers, string(txbuffer)+":"+constants.JOINPORT)
-		fmt.Println("Someone Joined our network!")
-	}
-
 }
 
 //Function that handles listening for incoming blocks. Handles starting and killing mining
@@ -304,7 +289,6 @@ func (nd *Node) TxListener() {
 	// Listen for incoming connections.
 	l, err := net.Listen(constants.CONN_TYPE, constants.NETWORK_INT+":"+constants.TRANSRXPORT)
 	tcpError(err)
-	// Close the listener when the application closes.
 	defer l.Close()
 	fmt.Println("Transaction listening on " + constants.NETWORK_INT + ":" + constants.TRANSRXPORT)
 	txbuffer := make([]byte, constants.MAXTRANSNETSIZE)
@@ -313,10 +297,28 @@ func (nd *Node) TxListener() {
 		conn, err := l.Accept()
 		tcpError(err)
 		conn.Read(txbuffer)
+
 		tx := LoadTX(txbuffer)
 		// Handle connections in a new goroutine.
 		if !reflect.DeepEqual(getTxFromHash(tx.Hash), tx) {
 			go nd.handleTX(*tx)
 		}
 	}
+}
+func (nd *Node) joinService(ip string) {
+	l, err := net.Listen(constants.CONN_TYPE, constants.NETWORK_INT+":"+constants.JOINPORT)
+	tcpError(err)
+	defer l.Close()
+	fmt.Println("Join Service listening on " + constants.NETWORK_INT + ":" + constants.JOINPORT)
+	txbuffer := make([]byte, constants.MAXTRANSNETSIZE)
+	for {
+		// Listen for an incoming connection.
+		conn, err := l.Accept()
+		tcpError(err)
+		conn.Read(txbuffer)
+
+		nd.peers = append(nd.peers, string(txbuffer))
+		fmt.Println("Someone Joined our network!")
+	}
+
 }

@@ -44,6 +44,9 @@ class Node(object):
                                 inputs=inputs,
                                 outputs=outputs
                                 )
+        def newWallet(self,filename):
+                self.sendCmd(4,filename)
+                self.loadWallet(filename)
         def sendCmd(self,job,filename,walindex="",addridx="",inputs=[],outputs=[]):
                 send = {
                         "job": job,
@@ -71,10 +74,13 @@ def getAddresses(ip,cmdport):
         return addrs
 
 if __name__ == "__main__":
-        n1 = Node()
+        NETDIR = "networkfiles"
+        print("Loading Wallets")
+        n1 = Node("localhost")
         n1.loadWallet("networkfiles/genesisWallet")
-        addressToSendTo = getAddresses("localhost",1945)[0][0]
+        addressToSendTo = getAddresses(n1.ip,1945)[0][0]
         txToSend = n1.getClaimedTxs()[0][0]
+        print "Claimed Transactions", txToSend
         print "Lets send {} goins to {}".format(txToSend,addressToSendTo)
-        print n1.prepTx("networkfiles/trax1",0,0,[{"hash":txToSend,"idx":0}],[{"hash":addressToSendTo,"amt":100}])
-        print n1.sendTx("networkfiles/trax1",0,0)
+        print n1.prepTx("trax1",0,0,[{"hash":txToSend,"idx":0}],[{"hash":addressToSendTo,"amt":100}])
+        print n1.sendTx("trax1",0,0)

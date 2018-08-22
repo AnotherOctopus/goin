@@ -27,6 +27,7 @@ func create() string {
 	cnet.SaveTx(genesisTx)
 	log.Println(genesisBlock)
 	ioutil.WriteFile("networkfiles/genesisWallet", w.Dump(), 0644)
+	exec.Command("mongodump").Run()
 	return base64.StdEncoding.EncodeToString(genesisBlock.Hash[:])
 
 }
@@ -36,17 +37,11 @@ func main() {
 	flag.Parse()
 	if *creategen {
 		genHash := create()
-		exec.Command("cp", "-r", "/var/lib/mongodb", ".").Run()
 		ioutil.WriteFile("networkfiles/genhash", []byte(genHash), 0644)
 	} else {
-		hostdomain, err := os.Hostname()
-		if err != nil {
-			log.Println("Something up nigga")
-			os.Exit(1)
-		}
 		peerips := []string{}
 		nd := cnet.New(peerips)
-		nd.RequestToJoin(hostdomain, os.Getenv("NETNODE"), os.Getenv("NETNODE") == "")
+		nd.RequestToJoin(os.Getenv("NETINT"), os.Getenv("NETNODE"), os.Getenv("NETNODE") == "")
 		go nd.TxListener()
 		go nd.BlListener()
 		go nd.CmdListener()

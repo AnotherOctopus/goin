@@ -20,5 +20,9 @@ while [[ $? -ne 0 && $COUNTER -lt 60 ]] ; do
 done
 
 # Now we know mongo is ready and can continue with other commands
-#mongorestore dump
-mv mongodb/ /var/lib/mongodb
+echo "Restoring"
+mongorestore dump
+ping -c 1 n1
+ping -c 1 n2
+echo "Running"
+go run run/main.go
