@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math"
 	"net"
@@ -74,10 +75,12 @@ func (nd Node) SendTx(tx Transaction) (reterr error) {
 		_, txData := tx.Dump()
 		raw := base64.StdEncoding.EncodeToString(txData)
 		reqstring := fmt.Sprintf("http://%v:%v/transaction", peer, constants.CMDRXPORT)
-		_, err := http.NewRequest("PUT", reqstring, strings.NewReader(raw))
+		req, err := http.NewRequest("PUT", reqstring, strings.NewReader(raw))
 		if err != nil {
 			return err
 		}
+		client := &http.Client{}
+		client.Do(req)
 	}
 	return nil
 }
@@ -89,10 +92,18 @@ func (nd *Node) RequestToJoin(nodeip string, netip string, newNet bool) (err err
 	}
 	nd.peers = append(nd.peers, netip)
 	reqstring := fmt.Sprintf("http://%v:%v/join", netip, constants.CMDRXPORT)
-	log.Println("DIALING: " + reqstring)
-	_, err = http.NewRequest("PUT", reqstring, strings.NewReader(nodeip))
+	log.Println("DIALING: %v", reqstring, nodeip)
+	client := &http.Client{}
+	req, err := http.NewRequest("POST", reqstring, strings.NewReader(nodeip))
+	resp, err := client.Do(req)
 	if err != nil {
 		return err
+	}
+	raw, err := ioutil.ReadAll(resp.Body)
+	if raw[0] != byte('A') {
+		fmt.Println("BAD RESOPONS")
+		fmt.Println(string(raw), err)
+		return nil
 	}
 	fmt.Println("JOINED NETWORK!")
 	return nil

@@ -191,6 +191,8 @@ func GetTxFromHash(hash [constants.HASHSIZE]byte) Transaction {
 func verifyTx(tx Transaction) (err error) {
 	// Check if the the Transaction is valid
 
+	log.Println("CHECKING TRANSACTION")
+	log.Println(tx)
 	if reflect.DeepEqual(tx, GetTxFromHash(GenesisBlock().Txs[0])) {
 		return nil
 	}

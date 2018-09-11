@@ -56,7 +56,7 @@ class Node(object):
                         "inputs":inputs,
                         "outputs":outputs
                 }
-                r = requests.post("http://{}:{}/cmd".format(self.ip,self.cmdport),json=send)
+                r = requests.post("http://{}:{}/command".format(self.ip,self.cmdport),json=send)
                 return r.content
         def getClaimedTxs(self):
                 txByWallet = requests.get("http://{}:{}/claimedtxs".format(self.ip,self.cmdport)).content

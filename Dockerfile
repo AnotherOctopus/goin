@@ -23,11 +23,5 @@ COPY network $INSTALL_PATH/network
 
 RUN echo $INSTALL_PATH
 
-EXPOSE 1945
-EXPOSE 1943
-EXPOSE 1918
-EXPOSE 1944
-EXPOSE 80
 
 CMD ["./mongo.sh"]
-#CMD ["hostname"]

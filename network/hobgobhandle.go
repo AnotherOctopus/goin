@@ -26,12 +26,12 @@ func (rh routeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func Handlers(context *HandlerContext) *mux.Router {
 	r := mux.NewRouter()
 	r.Handle("/", routeHandler{context, RootHandler}).Methods("GET")
-	r.Handle("/transaction", routeHandler{context, RootHandler}).Methods("GET")
-	r.Handle("/block", routeHandler{context, RootHandler}).Methods("GET")
-	r.Handle("/command", routeHandler{context, RootHandler}).Methods("GET")
-	r.Handle("/addresses", routeHandler{context, RootHandler}).Methods("GET")
-	r.Handle("/claimedtxs", routeHandler{context, RootHandler}).Methods("GET")
-	r.Handle("/joinService", routeHandler{context, RootHandler}).Methods("GET")
+	r.Handle("/transaction", routeHandler{context, TransactionHandler}).Methods("PUT")
+	r.Handle("/block", routeHandler{context, BlockHandler}).Methods("PUT")
+	r.Handle("/command", routeHandler{context, CmdHandler}).Methods("POST")
+	r.Handle("/addresses", routeHandler{context, AddressHandler}).Methods("GET")
+	r.Handle("/claimedtxs", routeHandler{context, ClaimedTxHandler}).Methods("GET")
+	r.Handle("/join", routeHandler{context, JoinHandler}).Methods("POST")
 
 	return r
 }

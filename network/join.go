@@ -11,6 +11,6 @@ func JoinHandler(ctx *HandlerContext, w http.ResponseWriter, r *http.Request) (i
 		return http.StatusOK, nil
 	}
 	ctx.Nd.AddPeer(string(peer))
-	w.Write([]byte("Joined"))
+	w.Write([]byte("A"))
 	return http.StatusOK, nil
 }
