@@ -173,7 +173,7 @@ func (o Output) VerifySignature(key *rsa.PublicKey) error {
 }
 
 // Returns the transaction object of an associated hash
-func getTxFromHash(hash [constants.HASHSIZE]byte) Transaction {
+func GetTxFromHash(hash [constants.HASHSIZE]byte) Transaction {
 	var retTX Transaction
 	sess, err := mgo.Dial("localhost")
 	checkerror(err)
@@ -191,7 +191,7 @@ func getTxFromHash(hash [constants.HASHSIZE]byte) Transaction {
 func verifyTx(tx Transaction) (err error) {
 	// Check if the the Transaction is valid
 
-	if reflect.DeepEqual(tx, getTxFromHash(GenesisBlock().Txs[0])) {
+	if reflect.DeepEqual(tx, GetTxFromHash(GenesisBlock().Txs[0])) {
 		return nil
 	}
 	// Check whole Hash
@@ -224,7 +224,7 @@ func verifyTx(tx Transaction) (err error) {
 
 	//Verify Inputs
 	for i, inp := range tx.Inputs {
-		prevTx := getTxFromHash(inp.PrevTransHash)
+		prevTx := GetTxFromHash(inp.PrevTransHash)
 		totalIn += int(prevTx.Outputs[inp.OutIdx].Amount)
 		//Verify that the previous Output was directed to this address
 		if prevTx.Outputs[inp.OutIdx].Addr != tx.Meta.Address {

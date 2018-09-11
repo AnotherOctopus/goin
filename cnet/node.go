@@ -3,13 +3,15 @@ package cnet
 
 import (
 	"container/heap"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log"
 	"math"
 	"net"
-	"os"
+	"net/http"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/AnotherOctopus/goin/constants"
@@ -31,12 +33,16 @@ func CheckError(err error) {
 	}
 }
 
+func (nd Node) GetPeers() []string {
+	return nd.peers
+}
+
 //New make a node that has no wallets it is using
 func New(peerips []string) (nd Node) {
 
 	nd.peers = make([]string, len(peerips))
 	for i, p := range peerips {
-		nd.peers[i] = p + ":" + constants.TRANSRXPORT
+		nd.peers[i] = p
 	}
 	nd.Wallets = make([]*wallet.Wallet, 0)
 	nd.mineQ = new(TxHeap)
@@ -46,13 +52,13 @@ func New(peerips []string) (nd Node) {
 
 func (nd Node) SendBlk(blk Block) (reterr error) {
 	for _, peer := range nd.peers {
-		conn, err := net.Dial("tcp", peer)
+		_, blkData := blk.Dump()
+		raw := base64.StdEncoding.EncodeToString(blkData)
+		reqstring := fmt.Sprintf("http://%v:%v/block", peer, constants.CMDRXPORT)
+		_, err := http.NewRequest("PUT", reqstring, strings.NewReader(raw))
 		if err != nil {
 			return err
 		}
-		_, blkData := blk.Dump()
-		conn.Write(blkData)
-		conn.Close()
 	}
 	return nil
 }
@@ -65,13 +71,13 @@ func (nd Node) SendTx(tx Transaction) (reterr error) {
 	}
 	SaveTx(tx)
 	for _, peer := range nd.peers {
-		log.Println("SENDING TO: " + peer + ":" + constants.TRANSRXPORT)
-		conn, err := net.Dial("tcp", peer+":"+constants.TRANSRXPORT)
+		_, txData := tx.Dump()
+		raw := base64.StdEncoding.EncodeToString(txData)
+		reqstring := fmt.Sprintf("http://%v:%v/transaction", peer, constants.CMDRXPORT)
+		_, err := http.NewRequest("PUT", reqstring, strings.NewReader(raw))
 		if err != nil {
 			return err
 		}
-		_, txData := tx.Dump()
-		conn.Write(txData)
 	}
 	return nil
 }
@@ -79,23 +85,21 @@ func (nd Node) SendTx(tx Transaction) (reterr error) {
 func (nd *Node) RequestToJoin(nodeip string, netip string, newNet bool) (err error) {
 	if newNet {
 		fmt.Println("Creating New Network!")
-		go nd.joinService(nodeip)
 		return nil
 	}
 	nd.peers = append(nd.peers, netip)
-	log.Println("DIALING: " + netip + ":" + constants.JOINPORT)
-	conn, err := net.Dial("tcp", netip+":"+constants.JOINPORT)
+	reqstring := fmt.Sprintf("http://%v:%v/join", netip, constants.CMDRXPORT)
+	log.Println("DIALING: " + reqstring)
+	_, err = http.NewRequest("PUT", reqstring, strings.NewReader(nodeip))
 	if err != nil {
 		return err
 	}
-	conn.Write([]byte(nodeip))
 	fmt.Println("JOINED NETWORK!")
-	go nd.joinService(nodeip)
 	return nil
 }
 
 //Take the received transaction and save and load it
-func (nd *Node) handleTX(tx Transaction) {
+func (nd *Node) HandleTX(tx Transaction) {
 	verified := verifyTx(tx)
 	if verified == nil {
 		// Save the transaction
@@ -163,11 +167,17 @@ func (nd *Node) StartMining(kill chan bool, txs [][constants.HASHSIZE]byte) {
 	}
 }
 
+func (nd *Node) HandleBlk(blk Block) {
+
+}
+func (nd *Node) AddPeer(peer string) {
+	nd.peers = append(nd.peers, peer)
+}
+
 //Function that handles listening for incoming blocks. Handles starting and killing mining
-func (nd *Node) BlListener() {
+func (nd *Node) BlListenerOLD() {
 	// Listen for incoming connections.
-	l, err := net.Listen(constants.CONN_TYPE, constants.NETWORK_INT+":"+constants.BLOCKRXPORT)
-	tcpError(err)
+	l, _ := net.Listen(constants.CONN_TYPE, constants.NETWORK_INT)
 	// Close the listener when the application closes.
 	defer l.Close()
 	//Create channel to kill mining
@@ -181,14 +191,13 @@ func (nd *Node) BlListener() {
 	}
 	//Start mining the list
 	go nd.StartMining(kill, miningtxs)
-	fmt.Println("Blocks listening on " + constants.NETWORK_INT + ":" + constants.BLOCKRXPORT)
+	fmt.Println("Blocks listening on " + constants.NETWORK_INT)
 
 	//This will be the buffer to prepare new mining routines
 	blkbuffer := make([]byte, constants.MAXBLKNETSIZE)
 	for {
 		// Listen for an incoming connection.
-		conn, err := l.Accept()
-		tcpError(err)
+		conn, _ := l.Accept()
 		conn.Read(blkbuffer)
 		//Loading received block
 		blk := LoadBlk(blkbuffer)
@@ -203,7 +212,7 @@ func (nd *Node) BlListener() {
 			if verified == nil {
 				for _, blktx := range blk.Txs {
 					//We know of this transaction
-					isKnown := reflect.DeepEqual(Transaction{}, getTxFromHash(blktx))
+					isKnown := reflect.DeepEqual(Transaction{}, GetTxFromHash(blktx))
 					//We are prepped to mine this transaction
 					inToMine := nd.mineQ.Contains(blktx)
 					if isKnown {
@@ -267,12 +276,6 @@ func requestTxn(tx [constants.HASHSIZE]byte) Transaction {
 	return Transaction{}
 }
 
-func tcpError(err error) {
-	if err != nil {
-		fmt.Println("Error listening:", err.Error())
-		os.Exit(1)
-	}
-}
 func (nd *Node) MostTrustedBlock() Block {
 	var mostTrusted Block
 	mostTrusted.blockchainlength = 0
@@ -282,43 +285,4 @@ func (nd *Node) MostTrustedBlock() Block {
 		}
 	}
 	return mostTrusted
-}
-
-// Listener function for the transactions
-func (nd *Node) TxListener() {
-	// Listen for incoming connections.
-	l, err := net.Listen(constants.CONN_TYPE, constants.NETWORK_INT+":"+constants.TRANSRXPORT)
-	tcpError(err)
-	defer l.Close()
-	fmt.Println("Transaction listening on " + constants.NETWORK_INT + ":" + constants.TRANSRXPORT)
-	txbuffer := make([]byte, constants.MAXTRANSNETSIZE)
-	for {
-		// Listen for an incoming connection.
-		conn, err := l.Accept()
-		tcpError(err)
-		conn.Read(txbuffer)
-
-		tx := LoadTX(txbuffer)
-		// Handle connections in a new goroutine.
-		if !reflect.DeepEqual(getTxFromHash(tx.Hash), tx) {
-			go nd.handleTX(*tx)
-		}
-	}
-}
-func (nd *Node) joinService(ip string) {
-	l, err := net.Listen(constants.CONN_TYPE, constants.NETWORK_INT+":"+constants.JOINPORT)
-	tcpError(err)
-	defer l.Close()
-	fmt.Println("Join Service listening on " + constants.NETWORK_INT + ":" + constants.JOINPORT)
-	txbuffer := make([]byte, constants.MAXTRANSNETSIZE)
-	for {
-		// Listen for an incoming connection.
-		conn, err := l.Accept()
-		tcpError(err)
-		conn.Read(txbuffer)
-
-		nd.peers = append(nd.peers, string(txbuffer))
-		fmt.Println("Someone Joined our network!")
-	}
-
 }

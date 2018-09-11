@@ -105,7 +105,7 @@ func (bl Block) String() string {
 	retstring += "Transactions: \n"
 	for _, tx := range bl.Txs {
 		retstring += "TX 1: \n"
-		retstring += getTxFromHash(tx).String()
+		retstring += GetTxFromHash(tx).String()
 	}
 	retstring += "\n"
 	retstring += "---------------------------------------------------------------------------\n"

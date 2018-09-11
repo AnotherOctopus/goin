@@ -13,10 +13,13 @@ RUN chmod 777 mongo.sh
 
 ENV INSTALL_PATH $GOPATH/src/github.com/AnotherOctopus/goin
 RUN go get gopkg.in/mgo.v2
+RUN go get github.com/gorilla/mux
+RUN go get github.com/gorilla/handlers
 RUN mkdir -p $INSTALL_PATH
 COPY cnet $INSTALL_PATH/cnet
 COPY wallet $INSTALL_PATH/wallet
 COPY constants $INSTALL_PATH/constants
+COPY network $INSTALL_PATH/network
 
 RUN echo $INSTALL_PATH
 
