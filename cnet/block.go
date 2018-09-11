@@ -16,8 +16,8 @@ import (
 
 	"github.com/AnotherOctopus/goin/constants"
 	"github.com/AnotherOctopus/goin/wallet"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 )
 
 const hashfile string = "networkfiles/genhash"

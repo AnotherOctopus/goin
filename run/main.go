@@ -13,8 +13,8 @@ import (
 	"github.com/AnotherOctopus/goin/cnet"
 	"github.com/AnotherOctopus/goin/network"
 	"github.com/AnotherOctopus/goin/wallet"
+	"github.com/globalsign/mgo"
 	"github.com/gorilla/handlers"
-	mgo "gopkg.in/mgo.v2"
 )
 
 func create() string {
@@ -51,7 +51,6 @@ func main() {
 		http.Handle("/", r)
 		go http.ListenAndServe(":1945", loggedRouter)
 		for {
-			log.Println(os.Getenv("NETINT"), nd.GetPeers())
 			time.Sleep(10 * time.Second)
 		}
 	}

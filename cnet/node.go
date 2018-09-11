@@ -126,6 +126,8 @@ func (nd *Node) HandleTX(tx Transaction) {
 					}
 				}
 				if canclaim {
+					raw := base64.StdEncoding.EncodeToString(tx.Hash[:])
+					log.Println(raw)
 					w.ClaimedTxs = append(w.ClaimedTxs, tx.Hash)
 				}
 			}

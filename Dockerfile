@@ -12,7 +12,7 @@ RUN apt-get -y install mongodb
 RUN chmod 777 mongo.sh
 
 ENV INSTALL_PATH $GOPATH/src/github.com/AnotherOctopus/goin
-RUN go get gopkg.in/mgo.v2
+RUN go get  github.com/globalsign/mgo
 RUN go get github.com/gorilla/mux
 RUN go get github.com/gorilla/handlers
 RUN mkdir -p $INSTALL_PATH

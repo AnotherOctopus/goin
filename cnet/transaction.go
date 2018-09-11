@@ -8,7 +8,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/binary"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -16,13 +15,13 @@ import (
 	"strconv"
 
 	"github.com/AnotherOctopus/goin/constants"
-	"gopkg.in/mgo.v2"
+	"github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 
 	//"gopkg.in/mgo.v2/bson"
 	"reflect"
 
 	"github.com/AnotherOctopus/goin/wallet"
-	"gopkg.in/mgo.v2/bson"
 )
 
 type Input struct {
@@ -54,7 +53,11 @@ type Transaction struct {
 
 //Error associated with transaction
 func (tx Transaction) Error() string {
-	return "TRANSACTION Not Valid:" + hex.EncodeToString(tx.Hash[:])
+	ret := "--------------------------------------------------------------\n"
+	ret += "TRANSACTION Not Valid:\n"
+	ret += tx.String()
+	ret += "--------------------------------------------------------------\n"
+	return ret
 }
 
 //transaction checkerror function
@@ -67,8 +70,8 @@ func checkerror(err error) {
 //Defines print
 func (tx Transaction) String() string {
 	retstring := ""
-	retstring += "	TX Hash: " + hex.EncodeToString(tx.Hash[:]) + "\n"
-	retstring += "	Payer: " + hex.EncodeToString(tx.Meta.Address[:]) + "\n"
+	retstring += "	TX Hash: " + base64.StdEncoding.EncodeToString(tx.Hash[:]) + "\n"
+	retstring += "	Payer: " + base64.StdEncoding.EncodeToString(tx.Meta.Address[:]) + "\n"
 	retstring += "	Transaction Prepared at Time: " + strconv.Itoa(int(tx.Meta.TimePrepared)) + "\n"
 	for idx, inp := range tx.Inputs {
 		retstring += "	Input idx " + strconv.Itoa(idx) + ": "
@@ -104,15 +107,8 @@ func (tx Transaction) Dump() (size int, ret []byte) {
 
 // Load a serialized transaction
 func LoadTX(b []byte) *Transaction {
-	var msglen int
-	for i, r := range b {
-		if r == 0x00 {
-			msglen = i
-			break
-		}
-	}
 	tx := new(Transaction)
-	err := json.Unmarshal(b[:msglen], tx)
+	err := json.Unmarshal(b, tx)
 	checkerror(err)
 	return tx
 }
@@ -191,8 +187,6 @@ func GetTxFromHash(hash [constants.HASHSIZE]byte) Transaction {
 func verifyTx(tx Transaction) (err error) {
 	// Check if the the Transaction is valid
 
-	log.Println("CHECKING TRANSACTION")
-	log.Println(tx)
 	if reflect.DeepEqual(tx, GetTxFromHash(GenesisBlock().Txs[0])) {
 		return nil
 	}
@@ -200,12 +194,16 @@ func verifyTx(tx Transaction) (err error) {
 	origHash := tx.Hash
 	tx.SetHash()
 	if tx.Hash != origHash {
+		log.Println("There is an issue with the Hash")
+		log.Println("Hash of Input", base64.StdEncoding.EncodeToString(origHash[:]))
+		log.Println("Expeected Hash", base64.StdEncoding.EncodeToString(tx.Hash[:]))
 		tx.Hash = origHash
 		return tx
 	}
 
 	// Check address
 	if wallet.Pkeytoaddress(tx.Meta.Pubkey) != tx.Meta.Address {
+		log.Println("There is an issue with the Address")
 		return tx
 	}
 
@@ -236,12 +234,14 @@ func verifyTx(tx Transaction) (err error) {
 		// Verify that the previous transactions that it referances are valid
 		err = verifyTx(prevTx)
 		if err != nil {
+			log.Println("There is an issue with Transaction Input")
 			return err
 		}
 	}
 
 	// Verify that the total out is the total in
 	if totalIn != totalOut {
+		log.Println("There is an issue with Transaction Value")
 		tx.Hash = origHash
 		return tx
 	}
